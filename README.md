@@ -1,8 +1,8 @@
 # OGAP: Open Glioma Analysis Pipeline
 
 Brain-tumour segmentation for **low-field / LMIC MRI** (BraTS-Africa, 64 mT Hyperfine
-Swoop) with teacher→student knowledge distillation and INT8 edge deployment. The
-codebase was refactored from a single 16k-line script
+Swoop) with teacher-to-student knowledge distillation and INT8 edge deployment. The
+codebase was refactored from a single monolith script
 (`OGAP_source_code_experimental_v9.py`) into the tested `ogap/` package, and the
 supporting scripts are grouped by role for clarity.
 
@@ -50,16 +50,16 @@ OGAP_v2/   (deploys as Scripts/ on Rorqual)
 │   └── ogap_v9.sbatch
 ```
 
-### Backward compatibility (verified)
-* `python OGAP_source_code_experimental_v9.py <cmd> …` — **unchanged**; the shim
+### Backward compatibility
+* `python OGAP_source_code_experimental_v9.py <cmd> …`: **unchanged**; the shim
   re-exports `ogap.legacy.main`. All legacy subcommands present.
-* `python -m ogap <cmd> …` — same legacy commands, delegated verbatim, plus `nas-search`.
+* `python -m ogap <cmd> …`: same legacy commands, delegated verbatim, plus `nas-search`.
 * Extracted models produce **byte-identical `state_dict` keys** to the monolith;
   existing checkpoints load `strict=True`.
 
 ---
 
-## 2. Quickstart (Rorqual)
+## 2. Quickstart (Rorqual, Alliance Canada)
 
 ```bash
 # 1. Build the environment (UNet/dense path)
@@ -98,7 +98,7 @@ EXPECTED_TORCH_PUBLIC_VERSION=2.5.1,TEACHER_ARCH=segmamba,OUT_DIR=…/teacher_ma
 
 ---
 
-## 3. New capabilities (all opt-in, all CPU-tested)
+## 3. New capabilities (all opt-in)
 
 | Capability | Module | Flag |
 |---|---|---|
