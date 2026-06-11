@@ -1,4 +1,4 @@
-# OGAP — Open Glioma Analysis Pipeline (v9.1)
+# OGAP: Open Glioma Analysis Pipeline (v9.1)
 
 Brain-tumour segmentation for **low-field / LMIC MRI** (BraTS-Africa, 64 mT Hyperfine
 Swoop) with teacher→student knowledge distillation and INT8 edge deployment. The
@@ -10,9 +10,7 @@ The refactor is a **strangler-fig wrap**: the legacy core lives as `ogap/legacy.
 extracted monolith, with audited correctness fixes applied symmetrically to it and the
 package, all default-OFF), and every new capability is opt-in and feature-flagged off by
 default. Backward compatibility is guaranteed by **state-dict-key parity tests**, not by
-byte-identity of the source. Every module ships with CPU unit tests (`pytest tests/` —
-**296 passing, 1 skipped**; a further 5 sample-data integration tests run when
-`OGAP_SAMPLE_DATA` points at a local BraTS case).
+byte-identity of the source. Every module ships with CPU unit tests (`pytest tests/`).
 
 ---
 
@@ -119,7 +117,7 @@ EXPECTED_TORCH_PUBLIC_VERSION=2.5.1,TEACHER_ARCH=segmamba,OUT_DIR=…/teacher_ma
 
 ```bash
 pip install pytest
-python -m pytest tests/ -q          # 296 passing, 1 skipped on CPU
+python -m pytest tests/ -q
 ```
 
 ---
