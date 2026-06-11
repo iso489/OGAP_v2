@@ -35,10 +35,10 @@ OGAP_v2/   (deploys as Scripts/ on Rorqual)
 │   ├── setup_ogap_env_mamba.sh     (dedicated torch-2.5.1 SegMamba env — mamba-ssm is torch-pinned)
 │   └── verify_ogap_env.py          (env verifier; honours OGAP_REQUIRE_MAMBA for the SegMamba checks)
 ├── workflow/            ← pre-registered audit pipeline (numbered steps)
-│   ├── build_split_manifests.py    (Step 3 — train / internal-val / external-val CSVs)
+│   ├── build_split_manifests.py    (Step 3: train / internal-val / external-val CSVs)
 │   ├── stage_ogap_csv_to_tmp.py    (stage NIfTI volumes into $SLURM_TMPDIR)
-│   ├── eval_hic_vs_lmic.py         (Step 4 — HIC vs LMIC external-validation stats)
-│   └── launch_ogap_train.sh        (Step 5 — single-entry train dispatcher: `unet` | `mamba`)
+│   ├── eval_hic_vs_lmic.py         (Step 4: HIC vs LMIC external-validation stats)
+│   └── launch_ogap_train.sh        (Step 5: single-entry train dispatcher: `unet` | `mamba`)
 ├── slurm/               ← Rorqual job scripts
 │   ├── submit_ogap_rorqual_pipeline_experimental.sh   (orchestrator: teacher→student→export→eval)
 │   ├── submit_ogap_teacher_rorqual_experimental.sbatch
@@ -88,7 +88,7 @@ sbatch slurm/submit_ogap_teacher_rorqual_ddp.sbatch          # 4×H100
 ```
 
 **SegMamba via direct submission** (the standalone mamba wrappers were folded into the
-main scripts — `workflow/launch_ogap_train.sh mamba` is the common path):
+main scripts: `workflow/launch_ogap_train.sh mamba` is the common path):
 
 ```bash
 sbatch --export=ALL,ENV_PATH=$HOME/…/envs/ogap_env_v2_mamba,\
