@@ -1,0 +1,25 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+build/
+dist/
+_archive/
+logs/
+
+# Runtime / cluster outputs (regenerated per run)
+Results/
+results/
+*.out
+*.err
+*.log
+
+# Copyrighted source PDFs — keep local, do not publish
+papers/
+*.pdf
+
+# Nested local clone of the GitHub repo (never commit as a gitlink)
+OGAP_v2/

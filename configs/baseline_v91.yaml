@@ -1,0 +1,92 @@
+# OGAP v9.1 BASELINE profile — the VALIDATED default path. [audit S1-A/B]
+#
+# This is what launch_pipeline.py runs by default: the historically-exercised,
+# checkpoint-compatible path —
+#   * conv UNet3D teacher + residual ("res") student,
+#   * legacy Dice+CE task loss and the legacy Hölder-divergence KD (the v9.1
+#     region/composite task loss + ODE-aware KD assembly activate ONLY when
+#     loss.task.type != "legacy", so they stay OFF here),
+#   * Tier-1 physics augmentation only (no k-space / AFA),
+#   * no tissue priors, no domain-adversarial head, no auxiliary tissue head.
+#
+# The full experimental stack (ODE teacher/student, region-aware loss + ODE-aware
+# KD, tissue priors, domain-adversarial, k-space/AFA augmentation) lives in
+# production_v91.yaml. Turn those on ONE ablation rung at a time using
+# experiments/ablation_configs/ and only promote to production once each rung is
+# benchmarked on the cluster — production_v91.yaml is the end state of a passed
+# ablation, not the starting point.
+
+loss:
+  task:
+    type: "legacy"
+
+distillation:
+  enabled: true            # legacy Hölder-divergence KD (task.type == legacy path)
+
+augmentation:
+  physics:
+    enabled: true
+    bias_field: true
+    intensity_shift: true
+    gamma_correction: true
+    gmm_contrast: true
+    rician_noise: true
+    resolution_jitter: true
+    kspace_partial_fourier: false
+    kspace_ghosting: false
+    kspace_motion: false
+    auxiliary_fourier_basis: false
+  # Restore spatial augmentation: enabling augmentation.physics replaces the legacy
+  # augmentor (flip+elastic) with the intensity-only v9.1 engine, so without this the
+  # v9.1 path would train with NO flips/affine. Channel-aware (all channels + label).
+  geometric:
+    enabled: true
+    flip: true
+    affine: true
+
+data:
+  use_tissue_priors: false
+  num_workers: 32
+  val_num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 4
+
+training:
+  epochs: 1000
+  dtype: "bfloat16"
+  amp_dtype: "bf16"
+  allow_tf32: true
+  compile:
+    enabled: true
+    mode: "max-autotune"
+    dynamic: false
+
+model:
+  teacher_variant: "standard"
+  student_variant: "standard"
+  teacher:
+    arch: "unet3d"
+    base: 32
+    block_style: "dense"
+  student:
+    arch: "standard"
+    base: 16
+
+inference:
+  tta:
+    enabled: true
+    method: "flip"          # legacy evaluate uses flip-TTA; bn_adapt is inert on GroupNorm
+
+domain:
+  enabled: false
+
+hardware:
+  device: "cuda"
+  target: "rorqual_h100"
+  gpu: "nvidia_h100"
+  dtype_default: "bf16"
+  require_bf16_tensor_cores: true
+
+reproducibility:
+  deterministic: true

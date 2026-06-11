@@ -1,0 +1,19 @@
+# Full proposed configuration: all opt-in components enabled. Each sibling
+# config disables exactly one component relative to this file (ablation = full
+# minus one). Every key here exists in ogap/config/defaults.yaml.
+loss:
+  task:
+    type: "composite"
+  auxiliary_tissue:
+    enabled: true
+distillation:
+  enabled: true
+  per_region_temperature_enabled: true
+domain:
+  enabled: true
+augmentation:
+  physics:
+    enabled: true
+data:
+  use_tissue_priors: true
+  tissue_prior_dir: "REQUIRED_SET_TISSUE_PRIOR_DIR"

@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: "OGAP — Open Glioma Analysis Pipeline"
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - given-names: "Ilyas"
+    family-names: "Oultache"
+    affiliation: "Montreal Neurological Institute, McGill University"
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO: add ORCID and any co-authors
+repository-code: "https://github.com/iso489/OGAP"
+abstract: >-
+  A deployable, physics-grounded, safe-by-abstention, equitable-by-design brain-tumour
+  segmentation system for low-field / LMIC MRI (BraTS-Africa, 64 mT Hyperfine Swoop),
+  with teacher→student knowledge distillation, a physics-based Bloch low-field
+  simulator, group-balanced conformal abstention, fairness-without-harm reporting, and
+  INT8 edge deployment.
+keywords:
+  - brain tumour segmentation
+  - low-field MRI
+  - knowledge distillation
+  - conformal prediction
+  - health equity
+  - domain generalization
+license: MIT
+version: "9.1"
+date-released: "2026-06-09"

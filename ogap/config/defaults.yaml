@@ -1,0 +1,222 @@
+# Default configuration. All new features default OFF so that loading this file
+# with no overrides reproduces the unmodified pipeline behaviour.
+
+num_classes: 4
+
+loss:
+  task:
+    # legacy | region_weighted_gdl | focal_dice | composite | region_sigmoid
+    # region_sigmoid = independent-sigmoid overlapping regions (WT/TC/ET) + batch Dice
+    # (nnU-Net region-based training; the SOTA BraTS objective, checkpoint-safe head).
+    type: "legacy"
+    num_classes: 4
+    smooth: 1.0e-5
+    region_weights: {WT: 1.0, TC: 2.0, ET: 4.0}
+    region_sigmoid_bce_weight: 0.5
+    focal_gamma: {WT: 1.0, TC: 1.5, ET: 2.0}
+    composite_dice_weight: 0.5
+    composite_ce_weight: 0.5
+    ce_class_weights: "auto"
+    boundary_loss: false
+    dynamic_region_weighting:
+      enabled: false
+      recompute_every_n_epochs: 5
+  auxiliary_tissue:
+    enabled: false
+    weight: 0.1
+
+distillation:
+  enabled: true
+  alpha: 1.0
+  beta: 0.5
+  gamma: 0.1
+  eta: 0.05
+  temperature: 3.0
+  per_region_temperature: {WT: 2.0, TC: 3.0, ET: 4.0}
+  per_region_temperature_enabled: false
+  region_weights: {WT: 1.0, TC: 1.5, ET: 3.0}
+  feature_distillation: false
+  attention_transfer: false
+  # Region-Aware Attention heterogeneous-KD ablation arm (PAT, Lin et al. 2025).
+  # Default OFF (baseline byte-identical). When enabled, RAA is learnable: add
+  # kd_loss.parameters() to the optimiser after one warm-up forward.
+  raa:
+    enabled: false
+    dim: 128
+    token_grid: 4
+    heads: 4
+    weight: 0.1
+  uncertainty_weighting:
+    enabled: false
+    mc_dropout_passes: 10
+    uncertainty_threshold: 0.8
+
+domain:
+  enabled: false
+  delta: 0.01
+
+augmentation:
+  physics:
+    enabled: false
+    bias_field: true
+    intensity_shift: true
+    gamma_correction: true
+    gmm_contrast: true
+    rician_noise: true
+    rician_snr_range: [5, 30]
+    resolution_jitter: true
+    resolution_downsample_range: [0.5, 1.0]
+    kspace_partial_fourier: false
+    kspace_ghosting: false
+    kspace_motion: false
+    wraparound_aliasing: false
+    auxiliary_fourier_basis: false
+    # Bloch low-field simulator: re-render MRI to target_b0 from FSL FAST CSF/WM/GM
+    # priors + label. Requires data.use_tissue_priors=true. Default OFF.
+    bloch_lowfield: false
+    bloch_lowfield_prob: 1.0
+    bloch_lowfield_target_b0: 0.064
+    # Bloch render realism (only active when bloch_lowfield=true): smooth within-tissue
+    # heterogeneity, low-field PSF blur (removes razor-sharp boundaries), real-texture
+    # blend (keeps fine anatomy), and per-sample TR/TE/TI/B0 jitter (domain rand, off by
+    # default).
+    bloch_heterogeneity: 0.10
+    bloch_boundary_blur_sigma: 0.6
+    bloch_texture_weight: 0.25
+    bloch_acquisition_jitter: 0.0
+    # SynthSeg-style fully contrast-randomized training arm (Billot 2023). Complementary
+    # to bloch_lowfield; forces intensity-agnostic anatomy. Needs data.use_tissue_priors.
+    synth_randomization: false
+    synth_prob: 0.5
+    synth_intensity_std_max: 0.15
+    synth_bias_strength: 0.30
+    synth_blur_sigma_max: 1.5
+    afa_mean_strength: 0.06
+    stacked_n: 0
+  # Channel-aware geometric augmentation (flip / affine / elastic). Applied to ALL
+  # channels (MRI + tissue priors) + the label so they stay co-registered — the
+  # complement of the intensity shield. Default OFF (byte-identical legacy path);
+  # the v9.1 profiles enable it because enabling augmentation.physics otherwise
+  # replaces the legacy augmentor (which had flip+elastic) with an intensity-only
+  # engine, silently dropping all spatial augmentation.
+  geometric:
+    enabled: false
+    flip: true
+    flip_p: 0.5
+    affine: true
+    affine_p: 0.3
+    max_rotation_deg: 10.0
+    scale_range: [0.9, 1.1]
+    max_shear: 0.05
+    elastic: false
+    elastic_p: 0.2
+    elastic_alpha: 8.0
+    elastic_grid: 4
+
+data:
+  use_tissue_priors: false
+  tissue_prior_dir: ""
+  in_channels: 4
+  # MRI modality count for the channel-safety shield (pre-tissue). load_config keeps
+  # this fixed at the modality count even when use_tissue_priors inflates in_channels.
+  n_mri_channels: 4
+  num_workers: 0
+  val_num_workers: 0
+  pin_memory: false
+  persistent_workers: false
+  prefetch_factor: null
+  local_scratch: "${SLURM_TMPDIR:-}"
+
+training:
+  epochs: 1000
+  teacher_batch_size: 2
+  student_batch_size: 4
+  grad_accum_steps: 1
+  optimizer: "adamw"
+  lr_teacher: 0.0002
+  lr_student: 0.001
+  weight_decay: 0.00003
+  dtype: "bfloat16"
+  use_fp8: false
+  amp_dtype: "bf16"
+  allow_tf32: true
+  compile:
+    enabled: false
+    mode: "max-autotune"
+    dynamic: false
+  cuda_graphs:
+    enabled: false
+  # Exponential moving average of the weights (evaluate + deploy the averaged copy).
+  # Near-free Dice gain; default OFF (byte-identical legacy path).
+  ema:
+    enabled: false
+    decay: 0.999
+  # DistributedDataParallel (4×H100 NVLink). The helpers are single-process-safe, so
+  # this is a no-op unless launched under torchrun/srun with WORLD_SIZE>1.
+  ddp:
+    enabled: false
+    find_unused_parameters: false
+  nvlink:
+    nccl_p2p_level: "NVL"
+    nccl_ib_disable: "0"
+
+model:
+  teacher_variant: "standard"
+  student_variant: "standard"
+  teacher:
+    arch: "unet3d"
+    base: 32
+    block_style: "mednext"
+    native_in_channels: 4
+  student:
+    arch: "standard"
+    base: 16
+    native_in_channels: 8
+    ode_steps: 4
+  channel_adapter:
+    enabled: false
+    teacher_in_channels: 4
+    student_in_channels: 8
+  transformer_engine_fp8:
+    enabled: false
+    recipe: "hybrid"
+
+inference:
+  tta:
+    enabled: false
+    # "flip" (legacy evaluate's TTA) | "tent" (GroupNorm-compatible, ogap.inference.tta)
+    # | "bn_adapt" (BatchNorm-only; inert on OGAP's GroupNorm net). [audit S1-C]
+    method: "flip"
+    adaptation_steps: 10
+    learning_rate: 0.0001
+    n_flips: 8
+  ood:
+    enabled: false
+    density_estimator: "cnf"
+  longitudinal:
+    enabled: false
+    tracker: "latent_ode"
+
+export:
+  onnx:
+    opset: 17
+  int8:
+    enabled: false
+    calibration_method: "percentile"
+    calibration_samples: 200
+    per_channel: true
+    reduce_range: null
+
+hardware:
+  device: "cpu"
+  target: "rorqual_h100"
+  gpu: "nvidia_h100"
+  cpu_acceleration:
+    amx: true
+    avx512: true
+  dtype_default: "float32"
+  require_bf16_tensor_cores: false
+
+reproducibility:
+  seed: 42
+  deterministic: true

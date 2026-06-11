@@ -1,0 +1,16 @@
+loss:
+  task:
+    type: "composite"
+  auxiliary_tissue:
+    enabled: true
+distillation:
+  enabled: true
+  per_region_temperature_enabled: false
+domain:
+  enabled: true
+augmentation:
+  physics:
+    enabled: true
+data:
+  use_tissue_priors: true
+  tissue_prior_dir: "REQUIRED_SET_TISSUE_PRIOR_DIR"

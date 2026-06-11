@@ -1,0 +1,82 @@
+# ─── OGAP v2 Python requirements ──────────────────────────────────────────────
+# Pinned to match the Compute-Canada Rorqual wheelhouse where possible. Install
+# via setup_ogap_env_v2.sh which routes most lines to `pip install --no-index`
+# (CC wheelhouse) and falls back to PyPI for items not in the local mirror.
+#
+# This file is for reference / reproducibility; the canonical installer is
+# setup_ogap_env_v2.sh.
+
+# ── Hard requirements (matches Rorqual wheelhouse) ──────────────────────────
+numpy
+scipy
+matplotlib
+pandas
+nibabel
+einops
+ninja
+threadpoolctl
+typing_extensions
+filelock
+fsspec
+jinja2
+markupsafe
+networkx
+packaging
+pyyaml
+regex
+tqdm
+sympy
+mpmath
+protobuf
+flatbuffers
+ml_dtypes
+humanfriendly
+coloredlogs
+click
+shellingham
+pygments
+markdown_it_py
+mdurl
+
+# ── Torch + CUDA stack (CC wheels) ──────────────────────────────────────────
+torch==2.6.0+computecanada
+triton==3.2.0+computecanada
+nvidia_ml_py
+
+# ── ONNX + safetensors ───────────────────────────────────────────────────────
+onnx
+onnxruntime
+onnxscript
+onnx-ir
+safetensors
+hf_xet
+
+# ── Hardware + ML metrics (REQUIRED additions over v1) ──────────────────────
+psutil           # benchmark + train resource monitoring
+scikit-learn     # mahalanobis_ood AUROC, stratify metrics
+pydicom          # DICOM read for dicom_seg subcommand
+SimpleITK        # N4 bias correction in preprocessing
+
+# ── Optional MedIA/IEEE TMI rigor extensions ────────────────────────────────
+# These do not block training / evaluation if missing; they only disable a
+# specific subcommand or cross-check. The setup script installs them with
+# --no-deps so PyPI cannot shadow scipy-stack numpy or the pinned CC torch.
+monai            # metric_check + Swin UNETR teacher (PyPI fallback)
+medpy            # metric_check medpy cross-validation (PyPI fallback)
+highdicom        # dicom_seg subcommand (PyPI only — not in CC wheelhouse)
+
+# ── CUDA-built optional dependency (PyPI source build) ──────────────────────
+# The default installer skips these because current CC/PyPI metadata can pull
+# mutually incompatible torch pins. Use setup_ogap_env_v2_mamba.sh to create a
+# separate torch-2.5 SegMamba env instead of mixing these into ogap_env_v2.
+# These two require nvcc + ninja and a working CUDA_HOME.
+causal-conv1d    # SegMamba transitive dependency
+mamba-ssm        # SegMambaTeacher backbone
+
+# ── v9.1 ODE / NAS additions (optional, PyPI) ─────────────────────────
+# These are additive and do NOT affect the core CC --no-index install.
+pytest           # unit tests for the new ogap/ package (tests/); dev-only
+# torchdiffeq is required for true O(1)-memory adjoint training of the
+# continuous-depth ODE teacher (ogap.models.ode, --teacher_arch ode). Fixed-step
+# ODE ablations must set adjoint=False explicitly.
+torchdiffeq      # required for --teacher_arch ode

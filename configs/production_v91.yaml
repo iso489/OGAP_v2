@@ -1,0 +1,161 @@
+# OGAP v9.1 PRODUCTION profile — the FULL experimental stack (opt-in). [audit S1-A]
+#
+# WARNING: this profile enables every v9.1 capability at once (ODE teacher AND
+# ODE student, region/composite loss + ODE-aware KD with feature + attention
+# transfer, domain-adversarial, auxiliary tissue head, tissue priors, and the
+# full k-space/AFA augmentation stack). It is the *end state of a passed
+# ablation*, NOT a starting point: with everything on, a regression cannot be
+# attributed to a single component, and several pieces (notably the ODE KD lift)
+# are not yet benchmarked on the cluster. Bring features up one rung at a time
+# via experiments/ablation_configs/ and start from configs/baseline_v91.yaml
+# (the launcher default).
+#
+# Set data.tissue_prior_dir to the staged FSL FAST prior directory before launch.
+
+loss:
+  task:
+    type: "composite"
+    composite_dice_weight: 0.5
+    composite_ce_weight: 0.5
+    # Boundary and dynamic region weighting stay disabled until the training loop
+    # applies them explicitly; validate-config hard-fails unsupported active gates.
+    boundary_loss: false
+    dynamic_region_weighting:
+      enabled: false
+      recompute_every_n_epochs: 5
+  auxiliary_tissue:
+    enabled: true
+    weight: 0.1
+
+distillation:
+  enabled: true
+  alpha: 1.0
+  beta: 0.5
+  gamma: 0.1
+  eta: 0.05
+  temperature: 3.0
+  per_region_temperature_enabled: true
+  feature_distillation: true
+  attention_transfer: true
+  uncertainty_weighting:
+    enabled: false
+    mc_dropout_passes: 10
+    uncertainty_threshold: 0.8
+
+domain:
+  enabled: true
+  delta: 0.01
+
+augmentation:
+  physics:
+    enabled: true
+    bias_field: true
+    intensity_shift: true
+    gamma_correction: true
+    gmm_contrast: true
+    rician_noise: true
+    resolution_jitter: true
+    kspace_partial_fourier: true
+    kspace_ghosting: true
+    kspace_motion: true
+    auxiliary_fourier_basis: true
+    afa_mean_strength: 0.06
+    # FOV wrap-around — the module's documented "dominant low-field brain artifact".
+    wraparound_aliasing: true
+    # Physics-grounded low-field render (needs data.use_tissue_priors + FSL FAST priors).
+    # Applied to a FRACTION of samples so the net still sees real high-field-augmented
+    # cases too (a healthier multi-field mixture than always-Bloch).
+    bloch_lowfield: true
+    bloch_lowfield_prob: 0.5
+    bloch_lowfield_target_b0: 0.064
+    # Per-sample TR/TE/TI + target-field jitter so the net sees a distribution of
+    # low-field appearances, not one fixed render (domain randomisation).
+    bloch_acquisition_jitter: 0.1
+  # Channel-aware spatial augmentation (flip + affine + elastic) on all channels +
+  # label. Required so enabling augmentation.physics does not drop spatial augmentation.
+  geometric:
+    enabled: true
+    flip: true
+    affine: true
+    elastic: true
+
+data:
+  use_tissue_priors: true
+  tissue_prior_dir: "REQUIRED_SET_TISSUE_PRIOR_DIR"
+  num_workers: 32
+  val_num_workers: 4
+  pin_memory: true
+  persistent_workers: true
+  prefetch_factor: 4
+
+training:
+  epochs: 1000
+  teacher_batch_size: 2
+  student_batch_size: 4
+  grad_accum_steps: 1
+  dtype: "bfloat16"
+  # OGAP's production path is Conv3d-heavy; H100 acceleration comes from BF16,
+  # TF32, channels_last_3d, compile/autotune, and loader throughput, not FP8.
+  use_fp8: false
+  amp_dtype: "bf16"
+  allow_tf32: true
+  compile:
+    enabled: true
+    mode: "max-autotune"
+    dynamic: false
+  cuda_graphs:
+    enabled: false
+  # Weight EMA: evaluate + deploy the averaged weights (near-free Dice gain).
+  ema:
+    enabled: true
+    decay: 0.999
+
+model:
+  teacher_variant: "ode"
+  student_variant: "ode"
+  teacher:
+    arch: "ode"
+    base: 32
+    block_style: "dense"
+  student:
+    arch: "ode"
+    base: 16
+    ode_steps: 4
+  channel_adapter:
+    enabled: true
+    teacher_in_channels: 7
+    student_in_channels: 11
+  transformer_engine_fp8:
+    enabled: false
+
+inference:
+  tta:
+    enabled: true
+    # legacy `evaluate` applies flip-TTA. "bn_adapt" is inert on OGAP's GroupNorm
+    # network (no running stats); ogap.inference.tta.tent_adapt is the
+    # GroupNorm-compatible adaptive option if a future eval path wires it. [S1-C]
+    method: "flip"
+    adaptation_steps: 10
+    learning_rate: 0.0001
+    n_flips: 8
+  ood:
+    enabled: false
+  longitudinal:
+    enabled: false
+
+export:
+  int8:
+    enabled: true
+    calibration_method: "percentile"
+    calibration_samples: 200
+    per_channel: true
+
+hardware:
+  device: "cuda"
+  target: "rorqual_h100"
+  gpu: "nvidia_h100"
+  dtype_default: "bf16"
+  require_bf16_tensor_cores: true
+
+reproducibility:
+  deterministic: true
