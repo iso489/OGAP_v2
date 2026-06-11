@@ -28,7 +28,7 @@ OGAP_v2/   (deploys as Scripts/ on Rorqual)
 │   └── legacy.py        ← extracted 16k-line core + audited default-OFF fixes
 ├── configs/             ← baseline_v91.yaml (validated default) · production_v91.yaml (full stack)
 ├── experiments/         ← ablation_configs/ (0_full … 7_no_domain_adaptation)
-├── tests/               ← 296 passing CPU unit tests (+1 optional skip; +5 sample-data integration)
+├── tests/               
 │
 ├── setup/               ← environment bootstrap + verification
 │   ├── setup_ogap_env_v2.sh        (UNet/dense env; --with-mamba, --verify-only)
