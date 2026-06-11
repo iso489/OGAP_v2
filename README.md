@@ -122,27 +122,7 @@ python -m pytest tests/ -q
 
 ---
 
-## 5. Honest status — verified vs. needs the cluster
-
-**Verified here (CPU):** all imports; model forward/backward; monolith→package
-checkpoint parity; OFA export equality; zero-cost proxies; the `nas-search` CLI;
-latent-ODE fit/extrapolation; CNF OOD separation; conformal + equity statistics;
-**after the reorganization the full suite still passes (296 passing, 1 skipped) and every
-entry point imports from its new location.**
-
-**Needs Rorqual (GPU + BraTS-Africa data):** the KD-lift benchmark of the ODE/SegMamba
-teachers; training the OFA supernet; ONNX/INT8 export numbers (use the ONNX/onnxruntime
-path only — the CPU `quantize_student_int8` proxy does not quantise Conv3d); latent-ODE /
-CNF on real longitudinal + feature data. DDP is wired into both training loops
-(single-process verified here); the multi-GPU run still needs a one-node smoke test.
-
-**Before submission (author TODO):** finalise the `CITATION.cff` author / affiliation /
-ORCID fields and confirm the `LICENSE` choice + copyright holder; `ogap/legacy.py` can be
-further thinned once a GPU run verifies the extracted models match it.
-
----
-
-## 6. Paper mapping
+## 5. Paper mapping
 
 | Paper | Applied as |
 |---|---|
