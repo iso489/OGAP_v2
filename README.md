@@ -1,4 +1,4 @@
-# OGAP: Open Glioma Analysis Pipeline (v9.1)
+# OGAP: Open Glioma Analysis Pipeline
 
 Brain-tumour segmentation for **low-field / LMIC MRI** (BraTS-Africa, 64 mT Hyperfine
 Swoop) with teacher→student knowledge distillation and INT8 edge deployment. The
