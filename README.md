@@ -50,7 +50,6 @@ OGAP_v2/   (deploys as Scripts/ on Rorqual)
 │   ├── submit_utsw_eval_tta_rorqual_experimental.sbatch
 │   ├── submit_ogap_posthoc_full_rorqual.sbatch
 │   └── ogap_v9.sbatch
-└── docs/                ← design spec + SOTA-upgrades notes
 ```
 
 ### Backward compatibility (verified)
