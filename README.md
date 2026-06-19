@@ -32,7 +32,7 @@ OGAP_v2/   (deploys as Scripts/ on Rorqual)
 │
 ├── setup/               ← environment bootstrap + verification
 │   ├── setup_ogap_env_v2.sh        (UNet/dense env; --with-mamba, --verify-only)
-│   ├── setup_ogap_env_mamba.sh     (dedicated torch-2.5.1 SegMamba env — mamba-ssm is torch-pinned)
+│   ├── setup_ogap_env_mamba.sh     (dedicated torch-2.5.1 SegMamba env - mamba-ssm is torch-pinned)
 │   └── verify_ogap_env.py          (env verifier; honours OGAP_REQUIRE_MAMBA for the SegMamba checks)
 ├── workflow/            ← pre-registered audit pipeline (numbered steps)
 │   ├── build_split_manifests.py    (Step 3: train / internal-val / external-val CSVs)

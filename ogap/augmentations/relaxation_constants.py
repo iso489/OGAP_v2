@@ -2,14 +2,14 @@
 
 This module is the *physically-consistent* data layer for ``bloch_lowfield.py``: it
 provides in-vivo T1/T2 (ms) for the tissues OGAP must render, anchored at the source
-fields of the training data — **1.5 T (BraTS-Africa)** and **3.0 T (BraTS-2023)** — and
+fields of the training data - **1.5 T (BraTS-Africa)** and **3.0 T (BraTS-2023)** - and
 at the **~64 mT** deployment target, plus a field-extrapolation that respects the two
 robustly-established facts of brain relaxometry:
 
 1. **T1 is strongly field-dependent**, rising with B0 as a power law
    ``T1(B0) = C * B0**beta`` with ``beta ~ 0.31-0.38`` (tissue-dependent). Because the
    exponent differs between GM and WM, the **GM/WM T1 contrast collapses at both very
-   high and very low field** and peaks at intermediate field — the single most important
+   high and very low field** and peaks at intermediate field - the single most important
    reason low-field brain segmentation is intrinsically hard.
 2. **T2 is approximately field-independent** at clinical field (1.5-3 T) and lengthens
    only mildly toward very low field; **CSF is field-independent** in both T1 and T2.
@@ -17,23 +17,23 @@ robustly-established facts of brain relaxometry:
 A single power law from 3 T *over-extrapolates* at 64 mT (it ignores the low-field
 plateau), so this module interpolates **in log-B0 space between measured anchors**
 (1.5 T, 3 T, and the in-vivo 50-64 mT measurements) rather than extrapolating one law
-across three orders of magnitude — which is both more accurate and more honest.
+across three orders of magnitude - which is both more accurate and more honest.
 
 References (read for this module)
 --------------------------------
-* Wansapura 1999, JMRI 9:531 — in-vivo 3 T: WM T1 832/T2 80; GM T1 1331/T2 110; plus the
+* Wansapura 1999, JMRI 9:531 - in-vivo 3 T: WM T1 832/T2 80; GM T1 1331/T2 110; plus the
   Bottomley ``T1 = a*f**b`` and Fischer 4-parameter dispersion fits.
-* Stanisz 2005, MRM 54:507 — 3 T vs 1.5 T: **T2 ~field-independent** (WM modelled flat; GM
+* Stanisz 2005, MRM 54:507 - 3 T vs 1.5 T: **T2 ~field-independent** (WM modelled flat; GM
   has a mild rise within large in-vivo scatter); T1 WM +22 %, GM +62 %, blood +34 % (1.5->3 T).
   NOTE: those percentages are Stanisz's own (Stanisz 3 T WM/GM T1 ~1084/1820 ms). This module
   anchors WM/GM T1 to **Wansapura 1999** 3 T (832/1331) plus chosen 1.5 T mid-range values, so
-  its modelled 1.5->3 T rise is ~+28 %/+33 % — a consistent but different source, not a mismatch.
-* Rooney 2007, MRM 57:308 — ``T1 = C*f**beta`` with f = gamma*B0/(2*pi) the Larmor frequency
+  its modelled 1.5->3 T rise is ~+28 %/+33 % - a consistent but different source, not a mismatch.
+* Rooney 2007, MRM 57:308 - ``T1 = C*f**beta`` with f = gamma*B0/(2*pi) the Larmor frequency
   in MHz: WM beta 0.382, GM 0.376, blood 0.340; **CSF T1 is B0-independent (~4.3 s)**.
-* Pohmann 2016, MRM 75:801 — WM ``T1 = 659 * B0**0.35`` ms/T; T2* decreases with field.
-* Fischer 1990, MRM 16:317 — field-cycling dispersion; GM/WM T1 contrast peaks at medium
+* Pohmann 2016, MRM 75:801 - WM ``T1 = 659 * B0**0.35`` ms/T; T2* decreases with field.
+* Fischer 1990, MRM 16:317 - field-cycling dispersion; GM/WM T1 contrast peaks at medium
   field, collapses at low/high field.
-* O'Reilly 2022, MRM 87:884 — in-vivo 50 mT: WM T1 ~275, GM T1 ~327 (small contrast gap).
+* O'Reilly 2022, MRM 87:884 - in-vivo 50 mT: WM T1 ~275, GM T1 ~327 (small contrast gap).
 * Tumour values (3 T MR-fingerprinting / SyMRI, author-curated and literature):
   GBM solid T1 1700-2100 / T2 110-140; lower-grade glioma T1 1500-1800 / T2 160-172;
   vasogenic peritumoural edema T1 ~1400 (1066-1578) / T2 elevated (~150). Large biological
@@ -124,8 +124,8 @@ CSF = TissueRelaxation(
 # ── Tumour sub-regions (BraTS label convention) ──────────────────────────────
 # Prolonged T1/T2 vs normal brain. 3 T values from MR-fingerprinting/SyMRI studies;
 # low-field anchors via the WM-like exponent (clamped to the 64 mT plateau).
-# NOTE: these are *plausible-contrast* generators, not histology — large overlap exists.
-ENHANCING_TUMOUR = TissueRelaxation(   # BraTS ET (label 3) — solid, contrast-enhancing
+# NOTE: these are *plausible-contrast* generators, not histology - large overlap exists.
+ENHANCING_TUMOUR = TissueRelaxation(   # BraTS ET (label 3) - solid, contrast-enhancing
     "enhancing_tumour",
     t1_anchors={_B0_LOW: 560.0, _B0_15: 1550.0, _B0_3: 1900.0},
     # Oh 2005 (in-vivo 1.5T): glioma tumour T2 ~160 ms; 3T MR-fingerprinting ~125 ms.
@@ -141,7 +141,7 @@ TUMOUR_CORE = TissueRelaxation(        # BraTS TC (necrotic + non-enhancing, lab
 EDEMA = TissueRelaxation(              # BraTS ED (peritumoural vasogenic edema, label 2)
     "edema",
     t1_anchors={_B0_LOW: 470.0, _B0_15: 1200.0, _B0_3: 1400.0},
-    # Oh 2005 (in-vivo 1.5T): peritumoural (vasogenic) edema T2 203-226 ms — much
+    # Oh 2005 (in-vivo 1.5T): peritumoural (vasogenic) edema T2 203-226 ms - much
     # higher than tumour core; roughly field-independent.
     t2_anchors={_B0_LOW: 215.0, _B0_15: 210.0, _B0_3: 200.0},
     proton_density=0.85,
@@ -164,12 +164,12 @@ LOWFIELD_VALIDATION = {
 
 
 # ── Gadolinium enhancement (post-contrast T1c) ────────────────────────────────
-# Solomon–Bloembergen–Morgan: a paramagnetic agent adds a *relaxation rate*, so
+# Solomon-Bloembergen-Morgan: a paramagnetic agent adds a *relaxation rate*, so
 #   1/T1_post = 1/T1_pre + r1*[Gd]   (NOT a fixed multiplicative factor).
-# The increment R1_Gd = r1*[Gd] (s^-1) is ~field-flat over 64 mT–3 T (mild Gd-DTPA
+# The increment R1_Gd = r1*[Gd] (s^-1) is ~field-flat over 64 mT-3 T (mild Gd-DTPA
 # NMRD dispersion), so one R1_Gd reproduces the physics a fixed 0.45x multiplier
 # missed: because the rate (not T1) is shortened, the *relative* T1 drop is larger
-# where T1_pre is long (high field) — matching real post-contrast enhancement, which
+# where T1_pre is long (high field) - matching real post-contrast enhancement, which
 # is much brighter at 3 T than a 0.45x model gives. Default 2.5 s^-1 ≈ a clinical
 # Gd-DTPA dose (r1 ~ 4.5 mM^-1 s^-1, [Gd] ~ 0.5 mM in enhancing tissue).
 _GD_R1_PER_S: float = 2.5

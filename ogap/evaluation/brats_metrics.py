@@ -121,7 +121,7 @@ def compute_brats_metrics(pred, target,
         voxel_spacing_mm: physical voxel size for HD95 in millimetres. Pass the
             real NIfTI spacing for anisotropic low-field volumes.
         hd95_empty_policy: how to score HD95 when exactly one of prediction /
-            reference is empty for a region — ``"nan"`` (default; the distance is
+            reference is empty for a region - ``"nan"`` (default; the distance is
             undefined) or ``"penalty"`` (BraTS-leaderboard convention; substitutes
             ``hd95_penalty_mm``). Choose deliberately and report it. [F6]
         hd95_penalty_mm: the penalty distance used when ``hd95_empty_policy ==

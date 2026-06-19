@@ -33,7 +33,7 @@ NUM_WORKERS="${NUM_WORKERS:-16}"
 VAL_NUM_WORKERS="${VAL_NUM_WORKERS:-4}"
 TEACHER_BATCH_SIZE="${TEACHER_BATCH_SIZE:-2}"
 # 2026 audit: TEACHER_BASE default raised from 32 -> 64.  The teacher is a
-# KD-only model and is NEVER exported to INT8 — only the student is.  A heavier
+# KD-only model and is NEVER exported to INT8 - only the student is.  A heavier
 # teacher gives a stronger KD signal at no inference-time cost, since the
 # student (UNet3DStudent / MedNeXt-S) is what gets deployed on CPU.  Approximate
 # parameter counts at base=64 dense: ~46M (UNet3D) / ~50M (SegMamba); both fit
@@ -43,7 +43,7 @@ TEACHER_ARCH="${TEACHER_ARCH:-unet3d}"
 # mednext = depthwise-separable MedNeXt-S blocks (~1M @ base=32, default for
 # backward compat with old checkpoints).  dense = full 3x3x3 conv blocks
 # (~6M @ base=32, ~15M @ base=48, ~26M @ base=64); use 'dense' for heavy KD
-# teachers — only the student is exported to INT8 so the teacher does not need
+# teachers - only the student is exported to INT8 so the teacher does not need
 # to be quantization-friendly.
 TEACHER_BLOCK_STYLE="${TEACHER_BLOCK_STYLE:-mednext}"
 # FIX (Gap A + Gap B, 2026 audit): teacher-side feature-DR + modality dropout
@@ -66,7 +66,7 @@ LABEL_NOISE_BAND_FLIP_PROB="${LABEL_NOISE_BAND_FLIP_PROB:-0.30}"
 P_FIELD_CONTRAST_WARP="${P_FIELD_CONTRAST_WARP:-0.0}"
 FIELD_CONTRAST_SOURCE_B0="${FIELD_CONTRAST_SOURCE_B0:-3.0}"
 P_FOURIER_AMPLITUDE_MIX="${P_FOURIER_AMPLITUDE_MIX:-0.0}"
-# AFA dataset-side donor sourcing probability — MUST be > 0 for the augmentor's
+# AFA dataset-side donor sourcing probability - MUST be > 0 for the augmentor's
 # Fourier-amplitude mix to actually receive donor batches.  Both knobs together
 # control AFA: dataset (afa_prob) sources donors; augmentor (p_fourier_amplitude_mix)
 # applies the mix.  Setting only one silently disables AFA.
@@ -78,7 +78,7 @@ NOISE_CALIBRATION="${NOISE_CALIBRATION:-static}"
 CARVEMIX_PROB="${CARVEMIX_PROB:-0.0}"
 CARVEMIX_DILATION="${CARVEMIX_DILATION:-5}"
 # NOTE: ULF GAN synthesis (--p_ulf_gan_synthesis / --ulf_gan_weights / --ulf_gan_target_b0)
-# is a STUDENT-ONLY argument in OGAP_source_code_experimental_v9.py — the
+# is a STUDENT-ONLY argument in OGAP_source_code_experimental_v9.py - the
 # pretrain_teacher subparser does not accept it.  Do NOT add it to REALISM_ARGS here.
 AUTO_RESOURCES="${AUTO_RESOURCES:-1}"
 AUTO_RESOURCES_SAFETY="${AUTO_RESOURCES_SAFETY:-0.85}"
@@ -105,7 +105,7 @@ OGAP_STAGE_COLUMNS="${OGAP_STAGE_COLUMNS:-t1n,t1c,t2w,t2f,label}"
 # N4 bias-field correction is the dominant cost of the first epoch
 # (slow path through MultiModalSegDataset._load).  Without these caps,
 # every DataLoader worker spawns ~num-CPU ITK threads, oversubscribes the
-# Slurm CPU allocation, and the OS scheduler thrashes — causing first-epoch
+# Slurm CPU allocation, and the OS scheduler thrashes - causing first-epoch
 # hangs of >19 hours (see jobs 11111229 / 11112647).
 #
 #   OGAP_N4_THREADS    : ITK thread budget per worker (default 1)
@@ -207,11 +207,11 @@ try:
             "rerun setup/setup_ogap_env_v2.sh"
         )
     assert torch.cuda.is_available(), (
-        "torch.cuda.is_available() is False — CUDA driver not found or GPU not allocated"
+        "torch.cuda.is_available() is False - CUDA driver not found or GPU not allocated"
     )
     import triton
     # SimpleITK / N4 thread budget probe.  N4 first-epoch oversubscription was
-    # the cause of the 19h teacher hang — surface the resolved cap here so any
+    # the cause of the 19h teacher hang - surface the resolved cap here so any
     # regression (e.g. a future env where SimpleITK ignores the env var) is
     # caught at preflight rather than after sbatch queues the job.
     sitk_state = "(SimpleITK absent)"
@@ -232,7 +232,7 @@ try:
     except Exception as _sitk_exc:
         sitk_state = f"(SimpleITK probe failed: {_sitk_exc})"
     print(
-        f"[preflight] OK — torch={torch.__version__}  "
+        f"[preflight] OK - torch={torch.__version__}  "
         f"cuda={torch.version.cuda}  triton={triton.__version__}  "
         f"gpu={torch.cuda.get_device_name(0)}\n"
         f"[preflight] {sitk_state}"
@@ -262,7 +262,7 @@ for pair in \
   if [[ ! -e "${path}" ]]; then
     echo "[ERROR][teacher] Required path (${var}) not found: ${path}" >&2
     if [[ "${path}" == *"/UTSW-"* && -d "${path%/UTSW-*}/USTW-glioma" ]]; then
-      echo "        hint: '${path%/UTSW-*}/USTW-glioma' exists — rename to UTSW-glioma (UT Southwestern)." >&2
+      echo "        hint: '${path%/UTSW-*}/USTW-glioma' exists - rename to UTSW-glioma (UT Southwestern)." >&2
     fi
     exit 1
   fi
@@ -317,7 +317,7 @@ REALISM_ARGS+=(
   --noise_calibration "${NOISE_CALIBRATION}"
   --carvemix_prob "${CARVEMIX_PROB}"
   --carvemix_dilation "${CARVEMIX_DILATION}"
-  # FIX (Gap A, Gap B, Finding 4, 2026 audit) — new teacher robustness knobs.
+  # FIX (Gap A, Gap B, Finding 4, 2026 audit) - new teacher robustness knobs.
   --teacher_feature_dr "${TEACHER_FEATURE_DR}"
   --teacher_feature_dr_p "${TEACHER_FEATURE_DR_P}"
   --teacher_feature_dr_alpha "${TEACHER_FEATURE_DR_ALPHA}"
@@ -329,7 +329,7 @@ if [[ "${FORCE_RESUME_PARTIAL:-0}" == "1" ]]; then
 fi
 # NOTE: --p_ulf_gan_synthesis / --ulf_gan_target_b0 / --ulf_gan_weights are
 # student-only flags in the source.  They are intentionally NOT appended for
-# pretrain_teacher — argparse would reject them with "unrecognized arguments".
+# pretrain_teacher - argparse would reject them with "unrecognized arguments".
 
 srun --gpu-bind=closest --cpu-bind=cores --mem-bind=local python "${SCRIPT_PATH}" pretrain_teacher \
   --train_csv "${TRAIN_CSV}" \

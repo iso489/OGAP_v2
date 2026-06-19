@@ -4,7 +4,7 @@ OGAP today predicts RANO-style measurements from a *single* scan (the student's
 ``rano_head``). But glioma management is longitudinal: follow-up MRIs arrive at
 *irregular* intervals, and what clinicians need is the tumour-burden
 **trajectory** and a forecast. The Neural ODE paper's §5 latent-ODE is built for
-exactly this — "irregularly-sampled data such as medical records" — modelling a
+exactly this - "irregularly-sampled data such as medical records" - modelling a
 continuous latent trajectory with a single ODE shared across all series and an
 encoder that maps observations to an initial latent state.
 
@@ -15,7 +15,7 @@ encoder that maps observations to an initial latent state.
 * integrates the latent state with a learned ODE over per-series observation
   times,
 * decodes each latent state back to measurements, and
-* **extrapolates** to arbitrary future times — the clinically useful part
+* **extrapolates** to arbitrary future times - the clinically useful part
   (forecast tumour burden / RANO category at the next scan).
 
 Trained by the standard latent-ODE ELBO (reconstruction + KL). ``times`` may be
@@ -34,7 +34,7 @@ from ..numerics import ODESolverConfig, odeint
 
 
 class _LatentODEFunc(nn.Module):
-    """dz/dt = MLP(z) — the shared latent dynamics."""
+    """dz/dt = MLP(z) - the shared latent dynamics."""
 
     def __init__(self, latent_dim: int, hidden: int) -> None:
         super().__init__()
@@ -81,7 +81,7 @@ class LatentODERANOTracker(nn.Module):
 
         The latent-ODE recognition net consumes observations from latest to earliest,
         so the delta-t feature at each step must be the time elapsed since the
-        **previously processed** (later-in-time) observation — the BACKWARD gap on the
+        **previously processed** (later-in-time) observation - the BACKWARD gap on the
         reversed sequence. The previous code computed FORWARD gaps and only flipped the
         stacked tensor, which misaligned delta-t by one step under irregular sampling
         (each observation carried the gap to the *next* one processed, not the one just

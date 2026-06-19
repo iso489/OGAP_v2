@@ -53,7 +53,7 @@ LABEL_NOISE_BAND_FLIP_PROB="${LABEL_NOISE_BAND_FLIP_PROB:-0.30}"
 P_FIELD_CONTRAST_WARP="${P_FIELD_CONTRAST_WARP:-0.0}"
 FIELD_CONTRAST_SOURCE_B0="${FIELD_CONTRAST_SOURCE_B0:-3.0}"
 P_FOURIER_AMPLITUDE_MIX="${P_FOURIER_AMPLITUDE_MIX:-0.0}"
-# AFA dataset-side donor sourcing probability — MUST be > 0 for the augmentor's
+# AFA dataset-side donor sourcing probability - MUST be > 0 for the augmentor's
 # Fourier-amplitude mix to actually receive donors.  Both knobs together control AFA.
 AFA_PROB="${AFA_PROB:-0.0}"
 P_RECEIVE_COIL_INHOMOGENEITY="${P_RECEIVE_COIL_INHOMOGENEITY:-0.0}"
@@ -71,7 +71,7 @@ FEATURE_DR="${FEATURE_DR:-none}"
 # MixStyle3D control: P (per-batch activation) and α (Beta(α,α) mix)
 FEATURE_DR_P="${FEATURE_DR_P:-0.5}"
 FEATURE_DR_ALPHA="${FEATURE_DR_ALPHA:-0.1}"
-# Modality dropout guardrails — keep [min, max] modalities per sample
+# Modality dropout guardrails - keep [min, max] modalities per sample
 KEEP_MIN_MODALITIES="${KEEP_MIN_MODALITIES:-1}"
 KEEP_MAX_MODALITIES="${KEEP_MAX_MODALITIES:-4}"
 HOLDER_ALPHA="${HOLDER_ALPHA:-1.5}"
@@ -100,7 +100,7 @@ OGAP_STAGE_COLUMNS="${OGAP_STAGE_COLUMNS:-t1n,t1c,t2w,t2f,label}"
 # N4 bias-field correction is the dominant cost of the first epoch
 # (slow path through MultiModalSegDataset._load).  Without these caps,
 # every DataLoader worker spawns ~num-CPU ITK threads, oversubscribes the
-# Slurm CPU allocation, and the OS scheduler thrashes — the same hang that broke the
+# Slurm CPU allocation, and the OS scheduler thrashes - the same hang that broke the
 # teacher run (jobs 11111229 / 11112647).
 #
 #   OGAP_N4_THREADS    : ITK thread budget per worker (default 1)
@@ -200,7 +200,7 @@ try:
             "rerun setup/setup_ogap_env_v2.sh"
         )
     assert torch.cuda.is_available(), (
-        "torch.cuda.is_available() is False — CUDA driver not found or GPU not allocated"
+        "torch.cuda.is_available() is False - CUDA driver not found or GPU not allocated"
     )
     import triton
     sitk_state = "(SimpleITK absent)"
@@ -221,7 +221,7 @@ try:
     except Exception as _sitk_exc:
         sitk_state = f"(SimpleITK probe failed: {_sitk_exc})"
     print(
-        f"[preflight] OK — torch={torch.__version__}  "
+        f"[preflight] OK - torch={torch.__version__}  "
         f"cuda={torch.version.cuda}  triton={triton.__version__}  "
         f"gpu={torch.cuda.get_device_name(0)}\n"
         f"[preflight] {sitk_state}"
@@ -257,7 +257,7 @@ for pair in \
       echo "              or pass VAL_CSV=\${PROJECT_ROOT}/Scripts/val.csv explicitly." >&2
     fi
     if [[ "${path}" == *"/UTSW-"* && -d "${path%/UTSW-*}/USTW-glioma" ]]; then
-      echo "        hint: '${path%/UTSW-*}/USTW-glioma' exists — rename to UTSW-glioma (UT Southwestern)." >&2
+      echo "        hint: '${path%/UTSW-*}/USTW-glioma' exists - rename to UTSW-glioma (UT Southwestern)." >&2
     fi
     exit 1
   fi

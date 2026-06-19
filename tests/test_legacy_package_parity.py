@@ -4,9 +4,9 @@ The v9.1 refactor keeps model classes in BOTH ``ogap/legacy.py`` and
 ``ogap/models/*`` (intentionally, for checkpoint safety). They are documented as
 byte-identical extractions, so a freshly-seeded instance of each must produce the
 identical forward output. If a future edit "improves" one copy and not the other,
-these tests fail loudly — catching the divergence the audit warned about. The
-specific S2-C example — ``ogap.models.teacher.build_teacher`` not handling
-``arch='ode'`` while ``ogap.legacy.build_teacher`` does — is now RESOLVED and
+these tests fail loudly - catching the divergence the audit warned about. The
+specific S2-C example - ``ogap.models.teacher.build_teacher`` not handling
+``arch='ode'`` while ``ogap.legacy.build_teacher`` does - is now RESOLVED and
 pinned by ``test_package_build_teacher_dispatches_ode`` below.
 """
 import torch

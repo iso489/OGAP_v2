@@ -17,9 +17,20 @@ results/
 *.err
 *.log
 
-# Copyrighted source PDFs — keep local, do not publish
+# Copyrighted source PDFs: keep local, do not publish
 papers/
 *.pdf
 
 # Nested local clone of the GitHub repo (never commit as a gitlink)
 OGAP_v2/
+
+# Local agent / editor state
+.claude/
+
+# Patient-linked data manifests + provenance: keep local, do not publish
+train.csv
+val.csv
+master_manifest.csv
+external_erasmus.csv
+external_brats_africa.csv
+master_manifest_provenance.json

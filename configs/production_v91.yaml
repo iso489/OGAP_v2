@@ -1,4 +1,4 @@
-# OGAP v9.1 PRODUCTION profile — the FULL experimental stack (opt-in). [audit S1-A]
+# OGAP v9.1 PRODUCTION profile - the FULL experimental stack (opt-in). [audit S1-A]
 #
 # WARNING: this profile enables every v9.1 capability at once (ODE teacher AND
 # ODE student, region/composite loss + ODE-aware KD with feature + attention
@@ -60,7 +60,7 @@ augmentation:
     kspace_motion: true
     auxiliary_fourier_basis: true
     afa_mean_strength: 0.06
-    # FOV wrap-around — the module's documented "dominant low-field brain artifact".
+    # FOV wrap-around - the module's documented "dominant low-field brain artifact".
     wraparound_aliasing: true
     # Physics-grounded low-field render (needs data.use_tissue_priors + FSL FAST priors).
     # Applied to a FRACTION of samples so the net still sees real high-field-augmented

@@ -1,17 +1,17 @@
 """OGAP missing-modality student network (UNet3DStudent).
 
-EXTRACTED VERBATIM from the original v9 monolith — now ``ogap/legacy.py``; the
-top-level ``OGAP_source_code_experimental_v9.py`` is a thin shim — by the
+EXTRACTED VERBATIM from the original v9 monolith - now ``ogap/legacy.py``; the
+top-level ``OGAP_source_code_experimental_v9.py`` is a thin shim - by the
 v9.1 strangler-fig refactor. Class bodies are byte-identical to the monolith so
 existing state_dict checkpoints load without remapping. Do not "improve" these
-classes here without a matching note in the legacy shim — checkpoint compat
+classes here without a matching note in the legacy shim - checkpoint compat
 depends on attribute names and submodule order staying fixed.
 
 ``block_style`` (added v9.1) selects the residual block family:
-* ``"res"`` (default) — the historical ``ResConvBlock3D`` blocks; the default
+* ``"res"`` (default) - the historical ``ResConvBlock3D`` blocks; the default
   path is constructed identically to the monolith, so existing checkpoints load
   unchanged.
-* ``"ode"`` — ``WeightTiedODEBlock3D`` continuous-depth blocks (the export-safe
+* ``"ode"`` - ``WeightTiedODEBlock3D`` continuous-depth blocks (the export-safe
   student distilled from a SegMamba/ODE teacher). Effective depth is set by
   ``ode_steps`` at **no extra parameters**.
 """
@@ -84,7 +84,7 @@ class UNet3DStudent(nn.Module):
         # to avoid disrupting low-level feature learning
         self.enc1 = Block(in_channels, b, attention=attention)
         # Feature-space domain randomization (Zhou+ 2021 MixStyle / Li+ 2022 DSU).
-        # Inserted after the first encoder block — the standard early-layer
+        # Inserted after the first encoder block - the standard early-layer
         # placement that the MixStyle paper found most effective.
         self.feature_dr = MixStyle3D(p=feature_dr_p, alpha=feature_dr_alpha, mode=feature_dr)
         self.pool1 = nn.Conv3d(b, b, 2, stride=2, groups=b, bias=False)
@@ -166,7 +166,7 @@ class UNet3DStudent(nn.Module):
         if return_aux_outputs:
             aux_outputs = {
                 # self.rano_head is untrained (no per-case RANO targets exist for any
-                # OGAP cohort) and is NOT emitted — exposing an untrained head's output as
+                # OGAP cohort) and is NOT emitted - exposing an untrained head's output as
                 # "rano" risks it being read as a clinical measurement. The reported RANO
                 # comes from the geometric _region_clinical_measurements; the head is kept
                 # in __init__ only for checkpoint compatibility.

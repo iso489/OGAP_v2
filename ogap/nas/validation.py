@@ -14,10 +14,10 @@ architectures, (a) their zero-cost proxy scores and (b) a real held-out metric
 (e.g. validation Dice after a short distillation run), it computes Spearman and
 Kendall rank correlations and returns a verdict:
 
-* ``"trustworthy"``  — strong, significant positive rank correlation; the proxy
+* ``"trustworthy"``  - strong, significant positive rank correlation; the proxy
   may be used to drive the search and reported as a validated estimator.
-* ``"weak"``         — significant but modest; use only as a coarse pre-filter.
-* ``"exploratory"``  — not significant / negative; NAS results driven by this
+* ``"weak"``         - significant but modest; use only as a coarse pre-filter.
+* ``"exploratory"``  - not significant / negative; NAS results driven by this
   proxy must be reported as exploratory, not as validated architecture claims.
 
 This is the guard that keeps a reviewer from rejecting a NAS claim as an
@@ -32,7 +32,7 @@ import numpy as np
 
 # A proxy that drives the search must be POSITIVELY rank-correlated with the metric
 # (the search maximizes it). The verdict is therefore gated on SIGNED rho and the best
-# proxy is selected by signed rho — a strongly anti-correlated proxy is flagged, not
+# proxy is selected by signed rho - a strongly anti-correlated proxy is flagged, not
 # certified (param_count is a capacity prior, not an accuracy predictor).
 _TRUSTWORTHY_RHO = 0.7
 _WEAK_RHO = 0.3
@@ -108,7 +108,7 @@ def proxy_metric_rank_correlation(
     Args:
         proxy_scores: ``{arch_id: {proxy_name: score}}`` (e.g. the per-arch output
             of :func:`ogap.nas.proxies.compute_proxies`).
-        true_metric: ``{arch_id: measured_metric}`` — e.g. validation Dice from a
+        true_metric: ``{arch_id: measured_metric}`` - e.g. validation Dice from a
             short distillation run for each architecture.
         higher_metric_is_better: if False (e.g. HD95), the metric is negated so a
             *positive* reported correlation always means "proxy ranks good
@@ -162,7 +162,7 @@ def _scipy_spearman_p(a: np.ndarray, m: np.ndarray) -> float:
 def _verdict(rho: float, pval: float) -> str:
     # Use SIGNED rho: the search MAXIMIZES the proxy, so only a POSITIVE proxy<->metric
     # rank correlation certifies it. Ranking by |rho| would certify a strongly
-    # anti-correlated proxy as "trustworthy" — exactly a wrong-sign proxy, which would
+    # anti-correlated proxy as "trustworthy" - exactly a wrong-sign proxy, which would
     # drive the search toward the WORST architectures.
     if not np.isfinite(rho):
         return "exploratory"

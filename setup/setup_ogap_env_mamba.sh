@@ -1,6 +1,6 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────────────
-#  OGAP v2 SegMamba environment bootstrapper for Rorqual.
+#  OGAP v2 SegMamba environment bootstrapper for Trillium.
 #
 #  Creates a separate env:
 #    ~/ogap/envs/ogap_env_v2_mamba
@@ -278,14 +278,14 @@ else
 
   # mamba-ssm was installed --no-deps to prevent torch churn, but its __init__.py
   # imports from huggingface_hub (PyTorchModelHubMixin) and transformers at module
-  # load time — so `from mamba_ssm import Mamba` crashes without them.
+  # load time - so `from mamba_ssm import Mamba` crashes without them.
   # Install these HuggingFace deps from the CC wheelhouse.  We install tokenizers
   # and requests explicitly so transformers' --no-deps doesn't silently break it,
   # and we guard with ensure_torch_pin/triton afterwards to catch any accidental churn.
   echo "[mamba-setup][D] installing mamba-ssm HuggingFace runtime deps ..."
   pip install --no-index huggingface_hub \
     || pip install huggingface_hub --quiet
-  # transformers pulls tokenizers (Rust wheel) — use --no-deps then add tokenizers
+  # transformers pulls tokenizers (Rust wheel) - use --no-deps then add tokenizers
   # explicitly so we never let transformers silently upgrade numpy.
   pip install --no-index --no-deps transformers \
     || pip install --no-deps transformers --quiet
@@ -300,7 +300,7 @@ else
   # imports `GreedySearchDecoderOnlyOutput` from `transformers.generation`.  That
   # symbol was REMOVED in transformers 5.x (CC wheelhouse only ships 5.6.2+),
   # so `from mamba_ssm import Mamba` raises ImportError at module load.
-  # OGAP only needs the Mamba/Mamba2 SSM blocks — never MambaLMHeadModel — so
+  # OGAP only needs the Mamba/Mamba2 SSM blocks - never MambaLMHeadModel - so
   # we comment that single import out.  Idempotent: already-commented lines are
   # not re-touched because the regex requires a leading non-`#` character.
   echo "[mamba-setup][D] patching mamba_ssm/__init__.py for transformers 5.x compat ..."

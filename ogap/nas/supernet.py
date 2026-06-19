@@ -4,21 +4,21 @@ OGAP's hardest deployment problem is *hardware heterogeneity*: African clinics
 span old CPUs, weak GPUs and edge boxes. The survey's one-shot / weight-sharing
 methods (White et al. 2023, §4) and specifically Once-for-All (Cai et al. 2020)
 answer this: train **one** supernet, then extract a specialised subnet per
-hardware target **without retraining** — "one training run → a right-sized INT8
+hardware target **without retraining** - "one training run → a right-sized INT8
 student per clinic".
 
 Two elastic axes:
 
-* **width** — channel-sliced :class:`DynamicConv3d` / :class:`DynamicGroupNorm`
+* **width** - channel-sliced :class:`DynamicConv3d` / :class:`DynamicGroupNorm`
   share weights across widths (slimmable-network mechanism, Yu et al. 2019).
-* **depth** — the bottleneck refinement block is applied ``depth`` times with
-  **shared weights** — precisely the weight-tied Euler view of a Neural ODE
+* **depth** - the bottleneck refinement block is applied ``depth`` times with
+  **shared weights** - precisely the weight-tied Euler view of a Neural ODE
   (:mod:`ogap.models.student_ode`). Elastic depth costs zero extra parameters.
 
 Design note: skip connections are **additive**, not concatenated. With a concat
 + contiguous-slice scheme, an elastic-width conv whose input is the concat of two
 elastic tensors would mis-align channel groups. Additive fusion gives every conv
-a single elastic input source, so the top-left weight slice is exactly correct —
+a single elastic input source, so the top-left weight slice is exactly correct -
 which is what makes ``export_subnet()`` reproduce the supernet output bit-for-bit
 (verified in tests).
 """

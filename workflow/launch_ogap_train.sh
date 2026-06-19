@@ -9,7 +9,7 @@
 # What this script does:
 #   1. Activates the right venv (ogap_env_v2 vs ogap_env_v2_mamba).
 #   2. Sets the optimized env-knob playbook from the 2026 audit:
-#        - heavy teacher (base=64 dense) — student stays MedNeXt-S base=16
+#        - heavy teacher (base=64 dense) - student stays MedNeXt-S base=16
 #          for INT8/CPU deployment.
 #        - teacher-side MixStyle3D + 0.15 modality dropout (cross-scanner +
 #          missing-modality robustness, identity at eval).
@@ -42,7 +42,9 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-PROJECT_ROOT="${PROJECT_ROOT:-${HOME}/ogap/OGAP_v2}"
+PROJECT_ROOT="${PROJECT_ROOT:-/project/def-rdiaz/ilyaso/OGAP}"
+export PROJECT_ROOT
+export DATA_ROOT="${DATA_ROOT:-/project/def-rdiaz/ilyaso/Datasets}"
 cd "${PROJECT_ROOT}/Scripts"
 
 # ── Hygiene: prevent leaks from prior shell sessions ──────────────────
@@ -56,10 +58,10 @@ case "${MODE}" in
     export EXPECTED_TORCH_PUBLIC_VERSION=2.6.0
     export TEACHER_ARCH=unet3d
     export AUTO_RESOURCES_SAFETY_TEACHER=0.90
-    export TEACHER_OUT_DIR="${PROJECT_ROOT}/Results/teacher_unet_dense"
-    export STUDENT_OUT_DIR="${PROJECT_ROOT}/Results/student_unet_dense"
-    export EVAL_OUT_DIR="${PROJECT_ROOT}/Results/utsw_full_evaluation_tta_unet_dense"
-    PIPELINE=slurm/submit_ogap_rorqual_pipeline_experimental.sh
+    export TEACHER_OUT_DIR="${SCRATCH:-${HOME}/scratch}/ogap/Results/teacher_unet_dense"
+    export STUDENT_OUT_DIR="${SCRATCH:-${HOME}/scratch}/ogap/Results/student_unet_dense"
+    export EVAL_OUT_DIR="${SCRATCH:-${HOME}/scratch}/ogap/Results/utsw_full_evaluation_tta_unet_dense"
+    PIPELINE=slurm/submit_ogap_trillium_pipeline_experimental.sh
     ;;
   mamba|segmamba)
     # SegMamba arm. Requires the dedicated torch-2.5.1 venv built by
@@ -74,10 +76,10 @@ case "${MODE}" in
     export OGAP_DISABLE_TORCH_COMPILE=1            # Mamba env Triton/Inductor: run eager
     export TEACHER_ARCH=segmamba
     export AUTO_RESOURCES_SAFETY_TEACHER=0.75
-    export TEACHER_OUT_DIR="${PROJECT_ROOT}/Results/teacher_mamba"
-    export STUDENT_OUT_DIR="${PROJECT_ROOT}/Results/student_mamba"
-    export EVAL_OUT_DIR="${PROJECT_ROOT}/Results/utsw_full_evaluation_tta_mamba"
-    PIPELINE=slurm/submit_ogap_rorqual_pipeline_experimental.sh
+    export TEACHER_OUT_DIR="${SCRATCH:-${HOME}/scratch}/ogap/Results/teacher_mamba"
+    export STUDENT_OUT_DIR="${SCRATCH:-${HOME}/scratch}/ogap/Results/student_mamba"
+    export EVAL_OUT_DIR="${SCRATCH:-${HOME}/scratch}/ogap/Results/utsw_full_evaluation_tta_mamba"
+    PIPELINE=slurm/submit_ogap_trillium_pipeline_experimental.sh
     ;;
   *) usage ;;
 esac
@@ -92,6 +94,14 @@ export GRAD_ACCUM_STEPS=1
 export AUTO_RESOURCES=1
 export AUTO_RESOURCES_SAFETY_STUDENT=0.75
 
+# ── Full experimental stack (2026): DDP teacher (4xH100) + NAS + OOD ──────────
+# Override any to 0 to revert (e.g. USE_DDP_TEACHER=0 for the validated single-GPU
+# teacher). NAS is independent; OOD runs after the student checkpoint exists.
+export USE_DDP_TEACHER="${USE_DDP_TEACHER:-1}"
+export TEACHER_NPROC="${TEACHER_NPROC:-4}"
+export RUN_NAS="${RUN_NAS:-1}"
+export RUN_OOD="${RUN_OOD:-1}"
+
 # ── 2026 audit: teacher robustness knobs (Gap A + Gap B) ──────────────
 export TEACHER_FEATURE_DR=mixstyle       # cross-scanner invariance for KD logits
 export TEACHER_FEATURE_DR_P=0.5
@@ -99,7 +109,7 @@ export TEACHER_FEATURE_DR_ALPHA=0.1
 export TEACHER_MODALITY_DROPOUT_P=0.15   # KD logits encode missing-modality behaviour
 export TEACHER_MODALITY_DROPOUT_MAX_DROP=2
 
-# ── Staging (one-time copy to /localscratch — fast first epoch) ───────
+# ── Staging (Trillium is diskless: copy to a $SCRATCH job dir, decompress) ──
 export OGAP_STAGE_DATA_TO_TMP=1
 export OGAP_STAGE_DECOMPRESS_GZ=1
 export OGAP_STAGE_WORKERS=32

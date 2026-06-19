@@ -2,7 +2,7 @@
 
 Each baseline is a method we want to compare against. Actually training or
 evaluating one needs a cluster GPU, the dataset, and (for external methods)
-their reference implementation, none of which exist on the CPU dev box — so the
+their reference implementation, none of which exist on the CPU dev box - so the
 runners are honest stubs that raise ``NotImplementedError`` describing what is
 required. The registry itself (names + neutral one-line descriptions) is
 available everywhere so configs, tables, and docs can reference it.
@@ -65,7 +65,7 @@ def run_baseline(name: str, *args: Any, **kwargs: Any):
 
     Raises:
         KeyError: if ``name`` is not registered (validated before anything else).
-        NotImplementedError: always, for a registered name — these baselines need
+        NotImplementedError: always, for a registered name - these baselines need
             a cluster GPU, the dataset, and the method's reference implementation,
             so they cannot run on the CPU dev box.
     """

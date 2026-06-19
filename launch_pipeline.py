@@ -218,7 +218,7 @@ STAGES: List[Stage] = [
     Stage(2, "train", _student_cmd, lambda args: Path(args.student_out_dir) / "best_student.pth"),
     # NAS is an OFFLINE design tool: it writes an advisory Pareto front to JSON.
     # No downstream stage consumes pareto_json, and the searched OFA family is not
-    # the deployed UNet3DStudent — read it to inform a student config, don't expect
+    # the deployed UNet3DStudent - read it to inform a student config, don't expect
     # it to be auto-applied. Skipped by --no-heavy. [audit S2-B]
     Stage(3, "nas_search", _nas_cmd, _stage_artifact("pareto_json"), heavy=True),
     Stage(4, "export", _export_cmd, _stage_artifact("onnx_out")),
@@ -235,8 +235,8 @@ def _pipeline_env() -> dict:
     env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     env.setdefault("TORCHINDUCTOR_MAX_AUTOTUNE", "1")
     # NOTE: thread affinity (OMP/MKL/KMP) and NCCL settings are intentionally NOT
-    # set here. Thread counts are stage-specific — small for GPU training so CPU
-    # cores serve the dataloaders, large for CPU INT8 inference — and belong in the
+    # set here. Thread counts are stage-specific - small for GPU training so CPU
+    # cores serve the dataloaders, large for CPU INT8 inference - and belong in the
     # sbatch scripts (see docs/HARDWARE_TUNING.md §2). There is no DDP path in the
     # training loop, so the previous NCCL_* settings were dead. [audit S1-D / S3-D]
     return env

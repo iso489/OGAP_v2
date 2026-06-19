@@ -16,7 +16,7 @@
 #   TRAIN_CSV      = internal train split    (default: ${PROJECT_ROOT}/Scripts/train.csv)
 #   TRAIN_VAL_CSV  = internal val split      (default: ${PROJECT_ROOT}/Scripts/val.csv)
 #   EVAL_VAL_CSV   = external UTSW eval CSV  (default: ${DATA_ROOT}/Validation/UTSW-glioma/utsw_manual_val.csv)
-# NEVER set a bare VAL_CSV in your shell before calling this script — sbatch
+# NEVER set a bare VAL_CSV in your shell before calling this script - sbatch
 # --export=ALL would leak it into the teacher/student jobs.
 
 set -euo pipefail
@@ -33,7 +33,7 @@ TEACHER_BASE="${TEACHER_BASE:-64}"
 # Only the student is INT8-exported, so the teacher does not need to be quantization-friendly.
 TEACHER_BLOCK_STYLE="${TEACHER_BLOCK_STYLE:-mednext}"
 # FIX (Gap A + Gap B + Finding 4, 2026 audit): teacher robustness knobs that
-# only affect KD training (zero inference cost — they're identity at eval and
+# only affect KD training (zero inference cost - they're identity at eval and
 # only the student is exported to INT8).
 TEACHER_FEATURE_DR="${TEACHER_FEATURE_DR:-none}"
 TEACHER_FEATURE_DR_P="${TEACHER_FEATURE_DR_P:-0.5}"
@@ -191,7 +191,7 @@ check_path() {
     if [[ "${path}" == *"/UTSW-glioma/"* || "${path}" == *"/UTSW-Glioma/"* ]]; then
       local parent="${path%/UTSW-*}"
       if [[ -d "${parent}/USTW-glioma" ]]; then
-        echo "        hint: found '${parent}/USTW-glioma' on disk — that is a typo." >&2
+        echo "        hint: found '${parent}/USTW-glioma' on disk - that is a typo." >&2
         echo "              The correct spelling is UTSW (UT Southwestern). Rename it with:" >&2
         echo "              mv '${parent}/USTW-glioma' '${parent}/UTSW-glioma'" >&2
       fi

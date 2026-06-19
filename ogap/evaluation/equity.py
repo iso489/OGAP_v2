@@ -6,21 +6,21 @@ represented* subgroup. "Fairness Without Harm" (Pang et al., NeurIPS 2024,
 Def. 3.1) gives the right metric for that mission: **risk disparity**, the gap
 between a subgroup's risk and the overall risk,
 
-    Δ_k = R_{Q_k}(model) − R_Q(model),
+    Δ_k = R_{Q_k}(model) - R_Q(model),
 
 where ``R`` is the expected task error. For segmentation we instantiate the risk
-of a higher-is-better metric (Dice) as ``R = 1 − metric`` and of a distance
+of a higher-is-better metric (Dice) as ``R = 1 - metric`` and of a distance
 metric (HD95, lower-is-better) as ``R = metric`` directly, so a **positive**
 disparity always means "this subgroup is served worse than the cohort average".
 
 The clinically actionable subgroup axis for OGAP is the acquisition domain:
 field strength (e.g. 64 mT vs 1.5/3 T), scanner / site, or vendor. Reporting
-``Δ_k`` per acquisition group — with bootstrap confidence intervals and a
-Mann–Whitney test of the gap — makes "does the low-field group receive the same
+``Δ_k`` per acquisition group - with bootstrap confidence intervals and a
+Mann-Whitney test of the gap - makes "does the low-field group receive the same
 quality of service?" a measured result rather than an aspiration. Theorem 5.2 of
 the same paper bounds ``Δ_k`` by distribution shift + group gap + group size,
 which is precisely what OGAP's physics augmentation, cross-scanner distillation
-and domain-invariance machinery are designed to shrink — *without harming* the
+and domain-invariance machinery are designed to shrink - *without harming* the
 high-field group ("fairness without harm").
 
 Pure ``numpy`` (+ optional ``scipy`` for the test); CPU-only, data-free.
@@ -72,7 +72,7 @@ def risk_disparity(
     metric_name: str = "dsc_et",
     higher_is_better: Optional[bool] = None,
 ) -> Dict[str, float]:
-    """Per-group risk disparity ``Δ_k = R_k − R_overall`` for one metric.
+    """Per-group risk disparity ``Δ_k = R_k - R_overall`` for one metric.
 
     Args:
         per_group_metric: ``{group_label: [per-case metric values]}``. Groups are
@@ -103,6 +103,48 @@ def risk_disparity(
     return out
 
 
+def risk_disparity_ci(
+    per_group_metric: Mapping[str, Sequence[float]],
+    metric_name: str = "dsc_et",
+    higher_is_better: Optional[bool] = None,
+    *, reps: int = 2000, alpha: float = 0.05, seed: int = 0,
+) -> Dict[str, Tuple[float, float, float]]:
+    """Stratified-bootstrap CI on each Δ_k = R_k - R_overall.
+
+    The headline equity quantity is the disparity Δ_k, but a point Δ_k with no
+    interval can over- or under-state how much worse a subgroup is served. We
+    resample WITHIN each group (preserving group sizes - groups are independent
+    patients), recompute R_k and the pooled R_overall on each resample, and take
+    the percentile interval of Δ_k. Returns ``{group: (Δ_k, lo, hi)}`` (lo/hi NaN
+    for a group with <2 finite cases).
+    """
+    hib = _is_higher_better(metric_name) if higher_is_better is None else higher_is_better
+    finite = {g: _finite(v) for g, v in per_group_metric.items()}
+    point = risk_disparity(per_group_metric, metric_name, hib)
+    groups = [g for g, a in finite.items() if a.size]
+    if not groups:
+        return {g: (float("nan"), float("nan"), float("nan")) for g in finite}
+    rng = np.random.default_rng(seed)
+    boot: Dict[str, list] = {g: [] for g in groups}
+    for _ in range(reps):
+        resampled = {g: finite[g][rng.integers(0, finite[g].size, finite[g].size)]
+                     for g in groups}
+        overall_b = _risk(np.concatenate(list(resampled.values())), hib)
+        for g in groups:
+            boot[g].append(_risk(resampled[g], hib) - overall_b)
+    res: Dict[str, Tuple[float, float, float]] = {}
+    for g in finite:
+        d = float(point.get(g, float("nan")))
+        if g in groups and finite[g].size >= 2:
+            arr = np.asarray(boot[g])
+            lo = float(np.percentile(arr, 100.0 * alpha / 2.0))
+            hi = float(np.percentile(arr, 100.0 * (1.0 - alpha / 2.0)))
+        else:
+            lo = hi = float("nan")
+        res[g] = (d, lo, hi)
+    return res
+
+
 def subgroup_equity_table(
     results_by_case: Mapping[str, Mapping[str, float]],
     group_of_case: Mapping[str, str],
@@ -118,10 +160,10 @@ def subgroup_equity_table(
     Args:
         results_by_case: ``{case_id: {metric: value}}`` (e.g. the per-case output
             of :func:`ogap.evaluation.brats_metrics.compute_brats_metrics`).
-        group_of_case: ``{case_id: group_label}`` — the acquisition subgroup of
+        group_of_case: ``{case_id: group_label}`` - the acquisition subgroup of
             each case (field strength / scanner / site).
         metrics: metric keys to report.
-        reference_group: if given, the disparity and Mann–Whitney test compare each
+        reference_group: if given, the disparity and Mann-Whitney test compare each
             group to THIS reference group (e.g. ``"3T"``); otherwise disparity is
             vs the pooled cohort and the test compares each group to "all others".
         bootstrap_reps, alpha, seed: CI controls.
@@ -177,7 +219,7 @@ def subgroup_equity_table(
 
 
 def _gap_test(a: np.ndarray, b: np.ndarray) -> float:
-    """Two-sided Mann–Whitney U p-value for an independent-group gap (NaN if
+    """Two-sided Mann-Whitney U p-value for an independent-group gap (NaN if
     either side is too small or scipy is unavailable)."""
     if a.size < 1 or b.size < 1:
         return float("nan")
@@ -203,7 +245,7 @@ def fairness_without_harm_check(
     harm_tol: float = 0.0,
 ) -> Dict[str, object]:
     """Does ``candidate`` reduce subgroup disparity *without harming* the
-    reference (well-served) group? — the "fairness without harm" criterion.
+    reference (well-served) group? - the "fairness without harm" criterion.
 
     Args:
         baseline_per_group / candidate_per_group: ``{group: [metric values]}`` for

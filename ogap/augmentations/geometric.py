@@ -4,7 +4,7 @@ Why this module exists
 ----------------------
 The legacy ``MRIPhysicsAugmentor`` applied geometric warps (flip + elastic) to the
 ``(x, y)`` pair. When the v9.1 physics engine is enabled it *replaces* the legacy
-augmentor entirely — but the v9.1 :class:`~ogap.augmentations.physics_augment.PhysicsAugmentor`
+augmentor entirely - but the v9.1 :class:`~ogap.augmentations.physics_augment.PhysicsAugmentor`
 is intensity/noise/k-space only, with **no** spatial transforms. The v9.1 stack
 therefore trained with zero flips/affine/elastic, which is an unforced accuracy
 loss for 3D tumour segmentation. This module restores spatial augmentation for the

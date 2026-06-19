@@ -2,19 +2,19 @@
 
 Training a 3D segmentation model to convergence to score *one* architecture is
 infeasible across a search. The NAS survey (White et al. 2023, §5) surveys
-"performance estimation" speedups; the cheapest are **zero-cost proxies** —
+"performance estimation" speedups; the cheapest are **zero-cost proxies** -
 scalar scores from a single forward/backward on one minibatch that correlate
 with final accuracy. They are the right tool for OGAP's expensive-3D / small-
 data regime.
 
 Implemented (all robust to GELU activations, unlike ReLU-code proxies):
 
-* ``param_count``  — capacity prior.
-* ``grad_norm``    — total gradient norm from one backward (trainability).
-* ``snip``         — connection sensitivity ``sum|g ⊙ w|`` (Lee et al. 2019).
-* ``synflow``      — data-independent ``sum|g ⊙ w|`` on |w| with a ones input
+* ``param_count``  - capacity prior.
+* ``grad_norm``    - total gradient norm from one backward (trainability).
+* ``snip``         - connection sensitivity ``sum|g ⊙ w|`` (Lee et al. 2019).
+* ``synflow``      - data-independent ``sum|g ⊙ w|`` on |w| with a ones input
                      (Tanaka et al. 2020); avoids label leakage entirely.
-* ``jacob_cov``    — input-output Jacobian decorrelation across a batch
+* ``jacob_cov``    - input-output Jacobian decorrelation across a batch
                      (Mellor et al. 2021, NASWOT family), GELU-friendly variant.
 
 Use :func:`compute_proxies` to get all scores at once for a model + batch.
@@ -112,7 +112,7 @@ def jacob_cov(model: nn.Module, x: torch.Tensor) -> float:
 
     Score = -sum(log(eig) + 1/eig) over the eigenvalues of the correlation matrix of
     flattened input-output Jacobians (Mellor 2021). It is maximal for a perfectly
-    decorrelated (identity) correlation matrix — i.e. a more expressive net that
+    decorrelated (identity) correlation matrix - i.e. a more expressive net that
     separates inputs better scores HIGHER, matching the search's maximize direction.
     """
     x = x.clone().requires_grad_(True)
@@ -130,8 +130,8 @@ def jacob_cov(model: nn.Module, x: torch.Tensor) -> float:
     corr = Jn @ Jn.t()
     eig = torch.linalg.eigvalsh(corr + 1e-3 * torch.eye(b, device=x.device))
     # NASWOT (Mellor 2021): reward DECORRELATED (expressive) Jacobians with a HIGHER
-    # score. The previous ``-sum(log|eig|)`` = -log det(corr) was inverted — large for a
-    # correlated (non-expressive) net and ~0 for a decorrelated one — so the search
+    # score. The previous ``-sum(log|eig|)`` = -log det(corr) was inverted - large for a
+    # correlated (non-expressive) net and ~0 for a decorrelated one - so the search
     # (which MAXIMIZES this proxy) selected the LEAST-expressive architectures. The full
     # term ``-sum(log(eig) + 1/eig)`` is most-negative for an ill-conditioned corr and
     # largest for the identity (perfectly decorrelated) matrix.

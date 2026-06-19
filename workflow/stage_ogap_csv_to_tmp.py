@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Stage OGAP CSV-referenced volumes into a Slurm local scratch directory.
+"""Stage OGAP CSV-referenced volumes into a caller-supplied scratch directory.
 
-The training code reads full 3D NIfTI volumes in DataLoader workers. On Rorqual,
+The training code reads full 3D NIfTI volumes in DataLoader workers. On clusters like Rorqual,
 network filesystem reads and the resulting Linux page cache can be charged
 against the Slurm memory cgroup, which is what made the one-H100 jobs hit
 Out Of Memory before sustained GPU work began. This helper copies the CSV's
-path columns into $SLURM_TMPDIR, optionally decompressing .nii.gz to .nii, then
-prints shell assignments pointing the sbatch script at rewritten staged CSVs.
+path columns into the caller-supplied --stage-root (a job-private $SCRATCH
+directory on diskless clusters like Trillium; $SLURM_TMPDIR on node-local-disk
+clusters like Rorqual), optionally decompressing .nii.gz to .nii, then prints
+shell assignments pointing the sbatch script at rewritten staged CSVs.
 """
 
 from __future__ import annotations

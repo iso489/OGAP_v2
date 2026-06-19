@@ -77,7 +77,7 @@ srun --cpu-bind=cores --mem-bind=local \
 # its multi-module gradients via all_reduce_gradients), shards the metadata-weighted
 # sampler per rank with DistributedWeightedSampler (keeps the equity weighting) and
 # calls set_epoch(), scales the LR linearly, and gates all checkpoint writes on
-# is_main_process(). Activation is automatic from torchrun's WORLD_SIZE — no flag is
+# is_main_process(). Activation is automatic from torchrun's WORLD_SIZE - no flag is
 # needed; the helpers no-op under a single process, so this script also runs correctly
 # with --nproc_per_node=1. The single-process path is CPU-unit-tested; a 1-node 4-GPU
 # smoke test is the one remaining cluster validation (multi-GPU cannot run on a dev box).

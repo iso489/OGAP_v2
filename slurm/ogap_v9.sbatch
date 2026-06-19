@@ -1,15 +1,13 @@
 #!/bin/bash
 #SBATCH --job-name=ogap_v9
-#SBATCH --account=YOUR_SLURM_ACCOUNT
-#SBATCH --time=72:00:00
+#SBATCH --account=def-rdiaz
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gpus=h100:1
-#SBATCH --cpus-per-task=32
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-task=24
 #SBATCH --hint=nomultithread
 #SBATCH --distribution=block:block
-#SBATCH --mem=200G
-#SBATCH --tmp=500G
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 ##SBATCH --mail-user=YOUR_EMAIL@example.com  # set and uncomment before submitting
@@ -49,9 +47,16 @@ TRAIN_CSV="$PROJECT/Scripts/train.csv"
 VAL_CSV="$PROJECT/Scripts/val.csv"
 ALL_CSV="$PROJECT/Scripts/all.csv"
 
-RESULTS="$PROJECT/Results"
+RESULTS="${SCRATCH:-${HOME}/scratch}/ogap/Results"
 mkdir -p "$RESULTS/teacher" "$RESULTS/student" "$RESULTS/export" \
          "$RESULTS/eval"    "$RESULTS/ablation"
+
+# Trillium is DISKLESS: there is no node-local $SLURM_TMPDIR NVMe (the Rorqual
+# version requested --tmp=500G and staged there).  Stage to a job-private
+# $SCRATCH directory instead, and remove it on exit.
+STAGE_DIR="${OGAP_STAGE_DIR:-${SCRATCH:-${HOME}/scratch}/ogap_v9_stage_${SLURM_JOB_ID}}"
+mkdir -p "${STAGE_DIR}"
+trap 'rm -rf "${STAGE_DIR}"' EXIT
 
 # ── srun helper ───────────────────────────────────────────────────────────────
 # Default to local memory binding for lower NUMA latency. If your site rejects
@@ -85,19 +90,19 @@ if (( DECOMPRESS_JOBS < 1 || DECOMPRESS_JOBS > SLURM_CPUS_PER_TASK )); then
 fi
 
 echo "============================================="
-echo "OGAP Full Pipeline v9 — $(date)"
+echo "OGAP Full Pipeline v9 - $(date)"
 echo "JobID:  ${SLURM_JOB_ID}"
 echo "Node:   $(hostname)"
 echo "GPU:    $(nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader)"
 echo "CPUs:   ${SLURM_CPUS_PER_TASK} physical (workers=${NUM_WORKERS}, OMP=${OMP_NUM_THREADS})"
 echo "RAM:    ${SLURM_MEM_PER_NODE:-<unset>} MB"
 echo "Torch:  $(python -c 'import torch; print(torch.__version__, "| CUDA:", torch.version.cuda)')"
-echo "Tmpdir: ${SLURM_TMPDIR:-<unset>}"
+echo "Stage:  ${STAGE_DIR}"
 echo "============================================="
 
-: "${SLURM_TMPDIR:?SLURM_TMPDIR not set — job is missing --tmp flag}"
+# STAGE_DIR (a job-private $SCRATCH directory) was created and trap-cleaned above.
 
-# ── Stage data to local NVMe ──────────────────────────────────────────────────
+# ── Stage data to $SCRATCH (Trillium is diskless; no node-local NVMe) ─────────
 RAW_BASE="$PROJECT/Training_Datasets/Raw_Data"
 BRATS_SRC="${HOME}/scratch/brats_extracted"
 
@@ -108,28 +113,28 @@ fi
 
 echo ""
 echo ">>> Staging data to local NVMe ..."
-rsync -a --info=progress2 "$BRATS_SRC/" "$SLURM_TMPDIR/"
+rsync -a --info=progress2 "$BRATS_SRC/" "$STAGE_DIR/"
 echo "    Done: $(date)"
 
 # ── Pre-decompress .nii.gz -> .nii ───────────────────────────────────────────
 echo ""
 echo ">>> Pre-decompressing .nii.gz (${DECOMPRESS_JOBS} parallel jobs) ..."
-NII_GZ_COUNT=$(find "$SLURM_TMPDIR" -name "*.nii.gz" | wc -l)
+NII_GZ_COUNT=$(find "$STAGE_DIR" -name "*.nii.gz" | wc -l)
 echo "    Found: ${NII_GZ_COUNT} files"
 if [[ "$NII_GZ_COUNT" -gt 0 ]]; then
-  find "$SLURM_TMPDIR" -name "*.nii.gz" -print0 \
+  find "$STAGE_DIR" -name "*.nii.gz" -print0 \
     | xargs -0 -P "${DECOMPRESS_JOBS}" -I{} bash -c 'gunzip -f "$1"' _ {}
 fi
 echo "    Done: $(date)"
 
 # ── Rewrite CSV paths -> NVMe paths ───────────────────────────────────────────
-TRAIN_CSV_LOCAL="$SLURM_TMPDIR/train_local.csv"
-VAL_CSV_LOCAL="$SLURM_TMPDIR/val_local.csv"
-ALL_CSV_LOCAL="$SLURM_TMPDIR/all_local.csv"
+TRAIN_CSV_LOCAL="$STAGE_DIR/train_local.csv"
+VAL_CSV_LOCAL="$STAGE_DIR/val_local.csv"
+ALL_CSV_LOCAL="$STAGE_DIR/all_local.csv"
 
-sed "s|$RAW_BASE/|$SLURM_TMPDIR/|g; s|\.nii\.gz|\.nii|g" "$TRAIN_CSV" > "$TRAIN_CSV_LOCAL"
-sed "s|$RAW_BASE/|$SLURM_TMPDIR/|g; s|\.nii\.gz|\.nii|g" "$VAL_CSV"   > "$VAL_CSV_LOCAL"
-sed "s|$RAW_BASE/|$SLURM_TMPDIR/|g; s|\.nii\.gz|\.nii|g" "$ALL_CSV"   > "$ALL_CSV_LOCAL"
+sed "s|$RAW_BASE/|$STAGE_DIR/|g; s|\.nii\.gz|\.nii|g" "$TRAIN_CSV" > "$TRAIN_CSV_LOCAL"
+sed "s|$RAW_BASE/|$STAGE_DIR/|g; s|\.nii\.gz|\.nii|g" "$VAL_CSV"   > "$VAL_CSV_LOCAL"
+sed "s|$RAW_BASE/|$STAGE_DIR/|g; s|\.nii\.gz|\.nii|g" "$ALL_CSV"   > "$ALL_CSV_LOCAL"
 
 TRAIN_CSV="$TRAIN_CSV_LOCAL"
 VAL_CSV="$VAL_CSV_LOCAL"
@@ -241,7 +246,7 @@ run python "$SCRIPT" ablation \
 
 echo ""
 echo "============================================="
-echo "OGAP v9 Pipeline COMPLETE — $(date)"
+echo "OGAP v9 Pipeline COMPLETE - $(date)"
 echo "============================================="
 ls -lh "$RESULTS/teacher/best_teacher.pth"             2>/dev/null && echo "  ✓ Teacher checkpoint"
 ls -lh "$RESULTS/student/best_student.pth"             2>/dev/null && echo "  ✓ Student checkpoint"

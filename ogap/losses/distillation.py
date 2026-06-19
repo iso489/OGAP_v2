@@ -41,7 +41,7 @@ def _as_weight_dict(value, default: Dict[str, float]) -> Dict[str, float]:
         return dict(default)
     # A blank spec (e.g. `region_weights:` with nothing under it in YAML, which
     # the loader yields as an empty namespace/dict) must NOT silently disable the
-    # term — fall back to a non-empty default. An empty default is itself
+    # term - fall back to a non-empty default. An empty default is itself
     # legitimate (per_region_temperature = "no per-region override"), so only
     # substitute when the default has content. Mirrors region_aware's `x or default`.
     if not coerced and default:
@@ -135,7 +135,7 @@ def _token_cosine_mse(a: torch.Tensor, b: torch.Tensor) -> torch.Tensor:
 
 
 class RegionAwareAttentionDistill(nn.Module):
-    """Region-Aware Attention (RAA) feature distillation — PAT (Lin et al., 2025).
+    """Region-Aware Attention (RAA) feature distillation - PAT (Lin et al., 2025).
 
     Opt-in heterogeneous-KD ablation arm. OGAP distils from architecturally diverse
     teachers (UNet3D / SegMamba / SwinUNETR / Neural-ODE) into a CNN student, so the
@@ -161,7 +161,7 @@ class RegionAwareAttentionDistill(nn.Module):
 
     Faithful-adaptation note: PAT is 2-D and matches the full teacher feature map;
     in 3-D with heterogeneous spatial sizes we match at the shared ``grid^3``
-    region-token level — the natural multi-resolution analogue that keeps the
+    region-token level - the natural multi-resolution analogue that keeps the
     teacher/student spatial-size mismatch well defined.
     """
 
@@ -259,7 +259,7 @@ class KDLoss(nn.Module):
                 _cfg_get(config, ("distillation", "per_region_temperature_enabled"), False)),
         )
         # Region-Aware Attention heterogeneous-KD ablation arm (PAT; default OFF so
-        # the validated baseline is byte-identical). When enabled, RAA is learnable —
+        # the validated baseline is byte-identical). When enabled, RAA is learnable -
         # add kd_loss.parameters() to the optimiser after one warm-up forward.
         self.raa_enabled = bool(_cfg_get(config, ("distillation", "raa", "enabled"), False))
         self.raa_weight = float(_cfg_get(config, ("distillation", "raa", "weight"), self.gamma))

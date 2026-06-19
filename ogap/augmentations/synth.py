@@ -7,7 +7,7 @@ BraTS label). Following SynthSeg (Billot et al., Med. Image Anal. 2023), each ou
 channel samples *random* per-region Gaussian intensities, then applies random bias,
 blur (random effective resolution), and gamma. Because the contrast is re-sampled
 every step, the network cannot rely on any fixed intensity mapping and learns
-intensity-agnostic anatomy — the strongest known lever for cross-scanner / low-field
+intensity-agnostic anatomy - the strongest known lever for cross-scanner / low-field
 generalisation. It is a complementary training arm to the physics render, not a
 replacement.
 

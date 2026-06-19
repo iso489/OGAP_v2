@@ -6,7 +6,7 @@ is *constant-memory* backpropagation via the adjoint sensitivity method.
 
 This subpackage provides:
 
-* :func:`~ogap.numerics.odeint.odeint` — fixed-step Euler / midpoint / RK4
+* :func:`~ogap.numerics.odeint.odeint` - fixed-step Euler / midpoint / RK4
   integrators with **zero external dependencies** (pure PyTorch), so the ODE
   teacher and ODE student run on the cluster even when ``torchdiffeq`` is not
   installed.

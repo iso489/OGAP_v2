@@ -42,7 +42,7 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 from scipy import stats
 
-# Reuse the compliance helpers — they encode the TRIPOD+AI / SAGER / NIHMS
+# Reuse the compliance helpers - they encode the TRIPOD+AI / SAGER / NIHMS
 # definitions verbatim, so re-implementing them here would risk drift.
 _REPO_ROOT = Path(__file__).resolve().parent.parent  # parent of workflow/
 sys.path.insert(0, str(_REPO_ROOT))
@@ -85,11 +85,11 @@ def _classify_field(value: Any) -> str:
     except (TypeError, ValueError):
         return "unknown"
     if v < 0.5:
-        return "ulf"      # ultra-low: 0.064–0.3 T
+        return "ulf"      # ultra-low: 0.064-0.3 T
     if v < 1.0:
         return "low"      # 0.55, 0.7 T
     if v < 2.5:
-        return "1p5T"     # 1.0–1.5 T
+        return "1p5T"     # 1.0-1.5 T
     return "3T_plus"
 
 

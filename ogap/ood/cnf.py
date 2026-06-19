@@ -5,7 +5,7 @@ OGAP already flags distribution shift with Mahalanobis distance
 Continuous Normalizing Flow (Neural ODE paper §4, "Instantaneous Change of
 Variables") adds an *exact density* model: fit a CNF to in-distribution feature
 embeddings (e.g. the student's bottleneck ``ood_features``), then score a new
-scan by its exact log-likelihood. Low likelihood ⇒ out-of-distribution — exactly
+scan by its exact log-likelihood. Low likelihood ⇒ out-of-distribution - exactly
 the "is this African low-field scan in-distribution?" question, with a
 calibrated probabilistic answer that plugs into the existing selective-
 prediction / conformal stack.
@@ -56,7 +56,7 @@ def _hutchinson_trace(dz: torch.Tensor, z: torch.Tensor,
                       n_samples: int = 1) -> torch.Tensor:
     """Stochastic trace estimate tr(∂f/∂z) ≈ E_ε[εᵀ(∂f/∂z)ε], ε∼Rademacher.
 
-    Cost is O(n_samples) vector-Jacobian products regardless of ``dim`` — the
+    Cost is O(n_samples) vector-Jacobian products regardless of ``dim`` - the
     FFJORD-recommended estimator for large feature dimensions (Chen 2018 §4 notes
     the trace is the bottleneck; Grathwohl 2019 uses exactly this). Unbiased: for
     a linear field f=a·z it returns a·dim for every sample. [audit S3-C]
@@ -123,7 +123,7 @@ class CNFDensityEstimator(nn.Module):
         return base - delta_logp
 
     def nll(self, x: torch.Tensor) -> torch.Tensor:
-        """Mean negative log-likelihood — the training objective."""
+        """Mean negative log-likelihood - the training objective."""
         return -self.log_prob(x).mean()
 
     def fit(

@@ -5,13 +5,19 @@
 #
 # This file is for reference / reproducibility; the canonical installer is
 # setup_ogap_env_v2.sh.
+#
+# REPRODUCIBILITY: after a successful publication run, freeze the EXACT resolved
+# environment with `pip freeze > requirements_frozen.txt` and cite that in the
+# Methods. The bounds below pin only the numerically load-bearing packages (a
+# scipy/numpy major bump can change distance_transform_edt → HD95, or break the
+# numpy-1.x ABI the scipy-stack 2024a wheelhouse + the sbatch preflight assume).
 
 # ── Hard requirements (matches Rorqual wheelhouse) ──────────────────────────
-numpy
-scipy
+numpy>=1.24,<2          # <2: scipy-stack 2024a is numpy 1.x; sbatch preflight enforces this too
+scipy>=1.11,<2          # pin the major - HD95 EDT / percentile numerics
 matplotlib
 pandas
-nibabel
+nibabel>=5.0
 einops
 ninja
 threadpoolctl
@@ -53,7 +59,7 @@ hf_xet
 
 # ── Hardware + ML metrics (REQUIRED additions over v1) ──────────────────────
 psutil           # benchmark + train resource monitoring
-scikit-learn     # mahalanobis_ood AUROC, stratify metrics
+scikit-learn>=1.3,<2   # mahalanobis_ood AUROC, stratify metrics (pin major)
 pydicom          # DICOM read for dicom_seg subcommand
 SimpleITK        # N4 bias correction in preprocessing
 
@@ -63,7 +69,7 @@ SimpleITK        # N4 bias correction in preprocessing
 # --no-deps so PyPI cannot shadow scipy-stack numpy or the pinned CC torch.
 monai            # metric_check + Swin UNETR teacher (PyPI fallback)
 medpy            # metric_check medpy cross-validation (PyPI fallback)
-highdicom        # dicom_seg subcommand (PyPI only — not in CC wheelhouse)
+highdicom        # dicom_seg subcommand (PyPI only - not in CC wheelhouse)
 
 # ── CUDA-built optional dependency (PyPI source build) ──────────────────────
 # The default installer skips these because current CC/PyPI metadata can pull

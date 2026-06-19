@@ -1,7 +1,7 @@
 """Physics-consistency tests for the Bloch low-field simulator (CPU, no native data).
 
 These assert the *robust* qualitative facts of brain MR contrast and the
-field-dependent GM/WM T1 contrast collapse — the in-silico validation that stands in
+field-dependent GM/WM T1 contrast collapse - the in-silico validation that stands in
 for scarce native 64 mT data.
 """
 import torch

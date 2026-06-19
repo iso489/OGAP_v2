@@ -55,7 +55,7 @@ OGAP_STAGE_COLUMNS="${OGAP_STAGE_COLUMNS:-t1n,t1c,t2w,t2f,label}"
 # N4 bias-field correction is the dominant cost of the first eval pass when
 # the npy cache is cold (slow path through MultiModalSegDataset._load /
 # InferenceDataset).  Pin ITK threads here for the same reason as the
-# teacher / student jobs — without these caps, the worker pool can dispatch
+# teacher / student jobs - without these caps, the worker pool can dispatch
 # hundreds of ITK threads onto one SLURM CPU allocation and the scheduler thrashes.
 OGAP_N4_THREADS="${OGAP_N4_THREADS:-1}"
 OGAP_N4_ITERATIONS="${OGAP_N4_ITERATIONS:-50,50,30,20}"
@@ -137,7 +137,7 @@ try:
             "rerun setup/setup_ogap_env_v2.sh"
         )
     assert torch.cuda.is_available(), (
-        "torch.cuda.is_available() is False — CUDA driver not found or GPU not allocated"
+        "torch.cuda.is_available() is False - CUDA driver not found or GPU not allocated"
     )
     import triton
     sitk_state = "(SimpleITK absent)"
@@ -158,7 +158,7 @@ try:
     except Exception as _sitk_exc:
         sitk_state = f"(SimpleITK probe failed: {_sitk_exc})"
     print(
-        f"[preflight] OK — torch={torch.__version__}  "
+        f"[preflight] OK - torch={torch.__version__}  "
         f"cuda={torch.version.cuda}  triton={triton.__version__}  "
         f"gpu={torch.cuda.get_device_name(0)}\n"
         f"[preflight] {sitk_state}"
@@ -188,7 +188,7 @@ for pair in \
   if [[ ! -e "${path}" ]]; then
     echo "[ERROR][utsw_eval] Required path (${var}) not found: ${path}" >&2
     if [[ "${path}" == *"/UTSW-"* && -d "${path%/UTSW-*}/USTW-glioma" ]]; then
-      echo "        hint: '${path%/UTSW-*}/USTW-glioma' exists — rename to UTSW-glioma (UT Southwestern)." >&2
+      echo "        hint: '${path%/UTSW-*}/USTW-glioma' exists - rename to UTSW-glioma (UT Southwestern)." >&2
     fi
     exit 1
   fi

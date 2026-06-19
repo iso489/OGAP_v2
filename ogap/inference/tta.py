@@ -2,10 +2,10 @@
 
 Two complementary inference-time robustness tools:
 
-* :func:`flip_tta_predict` — average the model's softmax probabilities over axis
+* :func:`flip_tta_predict` - average the model's softmax probabilities over axis
   flips (each flip is un-flipped before averaging), the standard segmentation
   TTA. For a flip-equivariant model it returns the plain prediction exactly.
-* :func:`bn_adapt` — recalibrate BatchNorm running statistics to the test batch
+* :func:`bn_adapt` - recalibrate BatchNorm running statistics to the test batch
   (the ``"bn_adapt"`` method in the config), a cheap source-free domain shift fix.
 
 Both operate on a copy / under ``no_grad`` and leave the input model unchanged.
@@ -24,7 +24,7 @@ import torch.nn as nn
 logger = logging.getLogger(__name__)
 
 # Normalization layers whose affine (weight/bias) params Tent adapts. Unlike
-# BatchNorm these have no running stats, so bn_adapt cannot help — but their
+# BatchNorm these have no running stats, so bn_adapt cannot help - but their
 # affine parameters can still be tuned at test time.
 _NORM_TYPES = (
     nn.BatchNorm1d, nn.BatchNorm2d, nn.BatchNorm3d,
@@ -114,7 +114,7 @@ def bn_adapt(model: nn.Module, x: torch.Tensor, steps: int = 1,
 
 def tent_adapt(model: nn.Module, x: torch.Tensor, steps: int = 1,
                lr: float = 1e-3) -> nn.Module:
-    """Tent test-time adaptation (Wang et al., ICLR 2021) — GroupNorm-compatible.
+    """Tent test-time adaptation (Wang et al., ICLR 2021) - GroupNorm-compatible.
 
     Minimises the Shannon entropy of the model's prediction by gradient updates
     to the **affine parameters of the normalization layers only** (all other

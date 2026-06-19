@@ -5,8 +5,8 @@ Two layers:
 * thin wrappers (:func:`export_results_csv`, :func:`export_results_latex`) over the
   row-dict writers in ``tables.py``;
 * a DataFrame bridge (:func:`dataframe_to_rows`) that flattens MultiIndex columns
-  — e.g. the ``(dsc_et_mean, teacher)`` columns of
-  :func:`ogap.evaluation.modality_robustness.modality_robustness_table` — into
+  - e.g. the ``(dsc_et_mean, teacher)`` columns of
+  :func:`ogap.evaluation.modality_robustness.modality_robustness_table` - into
   flat ``dsc_et_mean_teacher`` keys, plus :func:`export_modality_robustness` which
   bundles the robustness table and (optionally) the significance sweep to files.
 

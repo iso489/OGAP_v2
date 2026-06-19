@@ -4,8 +4,8 @@ Each transform models a physically-motivated source of inter-scanner / inter-
 site variation (B1 bias field, intensity gain, gamma, contrast-distribution
 shift, Rician noise, thick-slice partial-volume effects, k-space artifacts, FOV
 wrap-around aliasing, and Fourier-basis AFA). They operate on a float tensor of
-shape ``(C, D, H, W)`` —
-one channel per MRI modality — and return the same shape.
+shape ``(C, D, H, W)`` -
+one channel per MRI modality - and return the same shape.
 
 GPU residency
 -------------
@@ -13,7 +13,7 @@ Every transform is wrapped by :func:`_batched`, so the *same* function also
 accepts a batched ``(B, C, D, H, W)`` tensor that already lives on the GPU. This
 is what lets the whole physics pipeline run on the H100 inside the CUDA
 prefetcher (:class:`GPUBatchedPhysicsAugmentor`) instead of on the CPU inside a
-DataLoader worker — removing the single biggest one-GPU throughput bottleneck.
+DataLoader worker - removing the single biggest one-GPU throughput bottleneck.
 The 4-D (single-sample) path is byte-for-byte unchanged, so the CPU dataset path
 and every existing test behave identically; only a 5-D input takes the new
 batched route. Heavy ops (FFTs, 3-D interpolation, polynomial fields) execute on
@@ -188,7 +188,7 @@ def rician_added_sigma(signal_mean_abs: float, snr: float,
     level ``sigma_observed``. To reach a *total* noise of
     ``sigma_target = signal_mean_abs / snr`` the added complex-Gaussian sigma must
     satisfy ``sigma_add^2 + sigma_observed^2 = sigma_target^2`` (variances add).
-    Returns ``sqrt(max(0, sigma_target^2 - sigma_observed^2))`` — clamped at 0
+    Returns ``sqrt(max(0, sigma_target^2 - sigma_observed^2))`` - clamped at 0
     because adding noise can only lower SNR, never raise it. Using
     ``max(sigma_target, sigma_observed)`` (the previous behaviour) over-injects on
     already-noisy low-field inputs.
@@ -198,7 +198,7 @@ def rician_added_sigma(signal_mean_abs: float, snr: float,
 
 
 # Physical magnitude bound on the multiplicative log-bias. exp(±0.5) -> a
-# 0.61x–1.65x B1 gain envelope, the realistic span for 0.064–3 T head coils;
+# 0.61x-1.65x B1 gain envelope, the realistic span for 0.064-3 T head coils;
 # clamping keeps the polynomial field from producing non-physical extremes.
 _BIAS_LOG_CLAMP = 0.5
 
@@ -209,7 +209,7 @@ def random_bias_field(x: torch.Tensor, g: Optional[torch.Generator] = None,
     """Multiplicative low-order polynomial B1 inhomogeneity, per channel.
 
     The field is treated as the **log** of the multiplicative bias and applied as
-    ``x * exp(field)`` — the N4ITK / N3 model (Tustison et al. 2010), where the
+    ``x * exp(field)`` - the N4ITK / N3 model (Tustison et al. 2010), where the
     observed signal equals the true signal times ``exp`` of a smooth field. This
     replaces the earlier ``x * (1 + field)`` form, which (i) is only the
     first-order Taylor term of the true exponential and (ii) could drive the
@@ -271,7 +271,7 @@ def gmm_contrast(x: torch.Tensor, g: Optional[torch.Generator] = None,
     by sampling a positive per-bin width scale ``exp(U(-jitter, jitter))`` and rebuilding
     monotone knot positions from the cumulative widths (rescaled to keep the endpoints
     fixed). Because the new knots are the cumulative sum of POSITIVE widths, the map is
-    strictly increasing — no intensity-ordering inversion at bin edges (the previous
+    strictly increasing - no intensity-ordering inversion at bin edges (the previous
     per-bin affine ``lo + (v-lo)*(1+jitter)`` could map the top of one bin above the
     bottom of the next, contradicting "monotone"). Background (exact 0) is preserved.
     """
@@ -314,7 +314,7 @@ def rician_noise(x: torch.Tensor, g: Optional[torch.Generator] = None,
         snr = max(_u(*snr_range, g), 1e-3)
         # Signal level for the SNR target is the mean MAGNITUDE of the foreground,
         # not |mean(foreground)|. The pipeline z-scores before augmenting, so the
-        # foreground mean is ~0 and |mean| collapses the target sigma to ~0 — i.e.
+        # foreground mean is ~0 and |mean| collapses the target sigma to ~0 - i.e.
         # rician_noise would inject essentially no noise on the real (z-scored)
         # inputs. abs().mean() is the magnitude scale (~0.8 for z-scored data) and
         # is identical to mean() for raw non-negative magnitude images.
@@ -436,7 +436,7 @@ def kspace_motion(x: torch.Tensor, g: Optional[torch.Generator] = None,
 def wraparound_aliasing(x: torch.Tensor, g: Optional[torch.Generator] = None,
                         fold_fraction_range: Tuple[float, float] = (0.05, 0.20),
                         attenuation_range: Tuple[float, float] = (0.10, 0.50)) -> torch.Tensor:
-    """FOV wrap-around (aliasing) artifact — a dominant low-field brain artifact.
+    """FOV wrap-around (aliasing) artifact - a dominant low-field brain artifact.
 
     When the field-of-view is smaller than the head along the phase-encode
     direction, anatomy beyond one FOV edge folds back onto the opposite edge.
@@ -445,7 +445,7 @@ def wraparound_aliasing(x: torch.Tensor, g: Optional[torch.Generator] = None,
     produced by :func:`kspace_partial_fourier` (k-space truncation), so this adds
     the missing wrap-around. Modelled as a faint, attenuated copy of an edge slab
     added to the opposite edge: a pure intensity overlay that leaves the true
-    anatomy — and therefore the segmentation labels — unchanged. No FFT and no
+    anatomy - and therefore the segmentation labels - unchanged. No FFT and no
     even-dimension requirement, so it runs on any device and any spatial size.
     """
     _, d, h, w = x.shape
@@ -497,7 +497,7 @@ def auxiliary_fourier_basis(x: torch.Tensor, g: Optional[torch.Generator] = None
         basis = torch.sin(2.0 * math.pi * freq * (direction[0] * zz + direction[1] * yy + direction[2] * xx - 0.25))
         # Normalise to UNIT PEAK (max-abs), not unit L2 norm. An L2 norm over all
         # voxels scales the basis by ~1/sqrt(N), so for a 128^3 volume the added
-        # perturbation was ~1000x too small — the AFA arm was effectively a no-op.
+        # perturbation was ~1000x too small - the AFA arm was effectively a no-op.
         # Unit-peak keeps the perturbation magnitude controlled by `sigma` (the
         # sampled exponential strength) and the channel range, as Vaish et al. intend.
         basis = basis / basis.abs().max().clamp_min(1e-6)
@@ -532,7 +532,7 @@ class PhysicsAugmentor:
     """Composed, individually-toggleable physics augmentation callable.
 
     Accepts either a single ``(C, D, H, W)`` sample (CPU dataset path) or a
-    batched ``(B, C, D, H, W)`` tensor on any device (GPU prefetcher path) — the
+    batched ``(B, C, D, H, W)`` tensor on any device (GPU prefetcher path) - the
     underlying transforms are :func:`_batched`, so both work transparently.
     """
 
@@ -605,7 +605,7 @@ class GPUBatchedPhysicsAugmentor:
     over a whole ``(B, C, D, H, W)`` batch instead of per-sample on the CPU. The
     label volume ``y`` is returned **unchanged**: every v9.1 transform is an
     intensity / acquisition operation (bias, gamma, Rician, k-space, AFA, …) with
-    no geometric component, so the segmentation labels are unaffected — which is
+    no geometric component, so the segmentation labels are unaffected - which is
     exactly why the v9.1 engine is safe to run after host->device copy without
     re-warping the mask.
 

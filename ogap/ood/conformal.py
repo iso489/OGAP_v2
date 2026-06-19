@@ -12,12 +12,12 @@ exactly OGAP's setting:
 1. **The standard guarantee is marginal (ensemble-averaged over calibration
    draws).** For a *single* predictor calibrated on a *small* set, the realised
    coverage is a random variable ``Cov ~ Beta(k, n+1-k)`` with
-   ``k = ceil((n+1)(1-alpha))`` — and for small ``n`` this Beta has a wide
+   ``k = ceil((n+1)(1-alpha))`` - and for small ``n`` this Beta has a wide
    spread, so the coverage a deployed model actually achieves can sit well below
    the nominal ``1-alpha``. BraTS-Africa is small, so we must report this spread
    (a coverage CI), not just the nominal level.
 2. **Coverage must be group-balanced.** When error is heterogeneous across the
-   input space — precisely OGAP's cross-scanner / cross-field reality — a single
+   input space - precisely OGAP's cross-scanner / cross-field reality - a single
    marginal threshold can hold on average yet fail badly on the most out-of-
    distribution subgroup (the low-field African scans we most care about). The
    fix is to calibrate a *separate* threshold per group (field strength / scanner
@@ -26,7 +26,7 @@ exactly OGAP's setting:
 This module provides: the finite-sample corrected quantile, the Beta coverage
 distribution + CI, a :class:`SplitConformalPredictor`, and a
 :class:`GroupBalancedConformalPredictor` that exposes the **worst-group**
-coverage — the number that the marginal guarantee hides. Pure ``numpy`` (+
+coverage - the number that the marginal guarantee hides. Pure ``numpy`` (+
 optional ``scipy`` for exact Beta intervals).
 
 Convention: lower nonconformity score = more in-distribution / more confident.
@@ -46,7 +46,7 @@ def conformal_quantile(cal_scores: Sequence[float], alpha: float = 0.1) -> float
     Uses the rank ``k = ceil((n+1)(1-alpha))`` so the marginal coverage is
     guaranteed ``>= 1-alpha`` (Vovk; Angelopoulos & Bates). If ``k > n`` the
     calibration set is too small to guarantee the level and ``+inf`` is returned
-    (accept everything — the only honest choice).
+    (accept everything - the only honest choice).
 
     Args:
         cal_scores: nonconformity scores on a held-out calibration set (lower =
@@ -82,7 +82,7 @@ def coverage_beta_params(n_cal: int, alpha: float = 0.1) -> Tuple[int, int]:
 def coverage_distribution(n_cal: int, alpha: float = 0.1, ci: float = 0.90
                           ) -> Dict[str, float]:
     """Mean and central-``ci`` interval of the realised coverage for a single
-    predictor calibrated on ``n_cal`` points — the small-dataset spread that the
+    predictor calibrated on ``n_cal`` points - the small-dataset spread that the
     marginal guarantee hides.
 
     Returns ``{"nominal", "mean", "lo", "hi", "n_cal", "alpha", "certifiable"}``.
@@ -92,7 +92,7 @@ def coverage_distribution(n_cal: int, alpha: float = 0.1, ci: float = 0.90
     convention (``k = ceil((n+1)(1-alpha)) > n``, i.e. ``alpha < 1/(n+1)``), the
     split-conformal threshold is ``+inf`` (accept-all): the realised coverage is
     deterministically 1, the Beta degenerates (``b = 0``), and ``certifiable`` is
-    ``False`` — surfacing that this group cannot back a ``1-alpha`` guarantee
+    ``False`` - surfacing that this group cannot back a ``1-alpha`` guarantee
     rather than silently emitting a NaN interval (the exact small-dataset failure
     this module exists to flag).
     """
@@ -110,7 +110,7 @@ def coverage_distribution(n_cal: int, alpha: float = 0.1, ci: float = 0.90
         _beta = None
     if _beta is not None:
         # Exact Beta quantiles. a/b are already validated above, so a computation
-        # error should not occur here — and is deliberately NOT swallowed, so it would
+        # error should not occur here - and is deliberately NOT swallowed, so it would
         # surface rather than be silently replaced by a Monte-Carlo approximation.
         lo = float(_beta.ppf(tail, a, b))
         hi = float(_beta.ppf(1.0 - tail, a, b))
@@ -164,7 +164,7 @@ class GroupBalancedConformalPredictor:
     """Per-group (field strength / scanner / site) split-conformal calibration.
 
     Fits an independent threshold for each acquisition subgroup so each gets its
-    own valid ``1-alpha`` guarantee, and reports the **worst-group** coverage —
+    own valid ``1-alpha`` guarantee, and reports the **worst-group** coverage -
     the quantity a single marginal threshold can silently violate on the most
     out-of-distribution low-field subgroup (Sánchez-Domínguez et al., §"group-
     balanced"). Groups with too few calibration points to certify the level fall

@@ -3,17 +3,17 @@
 Ties the pieces together into the survey's NAS loop (search space → search
 strategy → performance estimation; White et al. 2023, Fig. 2):
 
-* **search space**  — :mod:`ogap.nas.search_space` (:class:`ArchConfig`).
-* **estimation**    — zero-cost proxies (:mod:`ogap.nas.proxies`) for accuracy
+* **search space**  - :mod:`ogap.nas.search_space` (:class:`ArchConfig`).
+* **estimation**    - zero-cost proxies (:mod:`ogap.nas.proxies`) for accuracy
   and an in-process hardware model (:mod:`ogap.nas.hardware`) for cost. Either
   can be swapped for a real validation-Dice callback once you can afford partial
-  training — the driver only needs ``accuracy_of(model)`` and ``cost_of(model)``.
-* **strategy**      — random search (the survey's recommended baseline, §10.x)
+  training - the driver only needs ``accuracy_of(model)`` and ``cost_of(model)``.
+* **strategy**      - random search (the survey's recommended baseline, §10.x)
   and aging/regularised evolution (Real et al. 2019).
 
 The objective is explicitly **multi-objective and constrained** (§6.2): maximise
 an accuracy proxy while minimising INT8 size and latency, subject to a hard
-deployment budget. The result is a Pareto front — "one model per clinic" — not a
+deployment budget. The result is a Pareto front - "one model per clinic" - not a
 single winner.
 """
 from __future__ import annotations
@@ -43,7 +43,12 @@ class Budget:
 class SearchConfig:
     in_channels: int = 8
     num_classes: int = 4
-    input_shape: Tuple[int, ...] = (1, 8, 32, 32, 32)
+    input_shape: Tuple[int, ...] = (1, 8, 32, 32, 32)   # COST batch: B=1 single-volume
+    # Accuracy-proxy batch, DECOUPLED from the cost batch. jacob_cov/NASWOT scores
+    # the decorrelation of per-sample input-output Jacobians ACROSS A BATCH; with
+    # B=1 the BxB correlation matrix is the constant [[1]] and the proxy returns
+    # ~-1.0 for every architecture (dead). B>=16 is needed to discriminate.
+    proxy_batch: int = 16
     proxy_key: str = "jacob_cov"   # size-robust accuracy proxy by default
     teacher_model: Optional[nn.Module] = None
     teacher_input_shape: Optional[Tuple[int, ...]] = None
@@ -91,19 +96,32 @@ def build_search_model(arch: ArchConfig, in_channels: int, num_classes: int) -> 
 
 
 def evaluate(arch: ArchConfig, cfg: SearchConfig) -> Candidate:
-    """Score one architecture with proxies + hardware cost (no full training)."""
+    """Score one architecture with proxies + hardware cost (no full training).
+
+    The PROXY batch (``cfg.proxy_batch``) is decoupled from the COST batch
+    (``cfg.input_shape``, B=1): jacob_cov/NASWOT needs B>1 distinct samples (a 1x1
+    Jacobian correlation matrix is the constant [[1]], so B=1 makes the proxy
+    return ~-1.0 for every architecture). Cost (latency, peak activation) stays
+    B=1 - it estimates single-volume LMIC-edge deployment, not throughput.
+    """
     torch.manual_seed(cfg.seed)
     model = build_search_model(arch, cfg.in_channels, cfg.num_classes)
-    x = torch.randn(*cfg.input_shape)
+    # Reseed AFTER the (arch-dependent) model init so the proxy inputs are the
+    # SAME for every architecture - a fair NASWOT comparison rather than a
+    # parameter-count-dependent RNG draw.
+    torch.manual_seed(cfg.seed)
+    proxy_b = max(1, int(cfg.proxy_batch))
+    x = torch.randn(proxy_b, *cfg.input_shape[1:])
     teacher_x = None
     if cfg.teacher_model is not None and cfg.teacher_input_shape is not None:
-        teacher_x = torch.randn(*cfg.teacher_input_shape)
+        teacher_x = torch.randn(proxy_b, *cfg.teacher_input_shape[1:])
     proxies = compute_proxies(
         model, x,
         teacher=cfg.teacher_model,
         teacher_x=teacher_x,
         num_classes=cfg.num_classes,
     )
+    # Deployment cost on a SINGLE volume (B=1), independent of the proxy batch.
     cost = cost_of(model, cfg.input_shape, runs=cfg.cost_runs)
     accuracy = proxies.get(cfg.proxy_key, proxies["jacob_cov"])
     return Candidate(arch=arch, accuracy=accuracy, cost=cost, proxies=proxies)

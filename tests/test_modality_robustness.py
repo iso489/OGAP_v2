@@ -1,4 +1,4 @@
-"""§9.8.9 — modality-robustness suite + multi-model significance tests.
+"""§9.8.9 - modality-robustness suite + multi-model significance tests.
 
 Verifies the 11-combination enumeration, channel masking (zero/mean fill), the
 Friedman omnibus, the deterministic multi-model significance matrix row layout,
@@ -28,13 +28,23 @@ METRICS = ("dsc_wt", "dsc_tc", "dsc_et", "hd95_wt", "hd95_tc", "hd95_et")
 
 # ---------------------------------------------------------------- combinations
 def test_all_combinations_count_and_distinct():
-    assert len(ALL_COMBINATIONS) == 11
+    assert len(ALL_COMBINATIONS) == 15
     assert all(isinstance(c, frozenset) for c in ALL_COMBINATIONS)
-    assert len(set(ALL_COMBINATIONS)) == 11                       # distinct subsets
+    assert len(set(ALL_COMBINATIONS)) == 15                       # distinct subsets
     labels = [combo_label(c) for c in ALL_COMBINATIONS]
-    assert len(set(labels)) == 11                                 # distinct labels
-    # C(4,2)=6 pairs, C(4,3)=4 triples, C(4,4)=1 full
-    assert sorted(len(c) for c in ALL_COMBINATIONS) == [2] * 6 + [3] * 4 + [4]
+    assert len(set(labels)) == 15                                 # distinct labels
+    # all 2^4-1 non-empty subsets: C(4,1)=4 + C(4,2)=6 + C(4,3)=4 + C(4,4)=1
+    assert sorted(len(c) for c in ALL_COMBINATIONS) == [1] * 4 + [2] * 6 + [3] * 4 + [4]
+
+
+def test_all_combinations_includes_single_modalities():
+    # Single-sequence acquisitions are realistic LMIC scenarios (a site with only
+    # T1, or only FLAIR) and the hardest missing-modality stress test - they must
+    # be in the sweep, not dropped.
+    for ch in range(4):
+        assert frozenset({ch}) in ALL_COMBINATIONS
+    assert combo_label(frozenset({0})) == "T1"
+    assert combo_label(frozenset({3})) == "FLAIR"
 
 
 def test_combo_label_sorted_by_channel_index():
@@ -141,13 +151,13 @@ def test_multimodel_significance_matrix_row_layout():
 def test_full_significance_sweep_row_count():
     res = _synth_results(["a", "b", "c"], ALL_COMBINATIONS, n=4)
     df = full_significance_sweep(res, correction="holm")
-    assert len(df) == 11 * 24                                     # 264
+    assert len(df) == 15 * 24                                     # 360
 
 
 def test_modality_robustness_table_shape_and_sort():
     res = _synth_results(["teacher", "student"], ALL_COMBINATIONS, n=3)
     df = modality_robustness_table(res, metrics=("dsc_et",))
-    assert len(df) == 11
+    assert len(df) == 15
     assert "n_modalities" in df.columns
     assert ("dsc_et_mean", "teacher") in df.columns
     assert ("dsc_et_std", "student") in df.columns
@@ -212,3 +222,34 @@ def test_quantize_student_int8_quantizes_or_reports_unavailable():
     assert isinstance(q, nn.Module) and q is not m
     assert isinstance(m.fc, nn.Linear)                            # original untouched
     assert "quantized" in type(q.fc).__module__.lower()           # target layer quantized
+
+
+def test_quantize_student_int8_strict_by_default_refuses_conv():
+    # A conv-heavy student must NOT silently become an FP32 proxy on a path that
+    # could feed published INT8 numbers: strict=True is the default now. The real
+    # INT8 conv model is the ONNX/onnxruntime export.
+    real_engines = [e for e in torch.backends.quantized.supported_engines if e != "none"]
+    if not real_engines:
+        pytest.skip("no quantized backend engine on this host")
+    conv = _TinyModel()                                           # contains nn.Conv3d
+    with pytest.raises(RuntimeError):
+        quantize_student_int8(conv)                              # strict default -> refuse
+    proxy = quantize_student_int8(conv, strict=False)            # explicit opt-in still works
+    assert isinstance(proxy, nn.Module) and proxy is not conv
+
+
+def test_evaluate_modality_combinations_uses_real_case_ids():
+    # A 3-tuple loader (volume, label, case_ids) keys results by the real ids so
+    # the robustness table can be joined to per-case field-strength/cohort
+    # metadata for the LMIC-vs-HIC disparity analysis.
+    torch.manual_seed(0)
+
+    def _loader_with_ids():
+        yield (torch.randn(2, 4, 4, 4, 4),
+               torch.randint(0, 4, (2, 4, 4, 4)),
+               ["BraTS-Africa-007", "Erasmus-013"])
+
+    results = evaluate_modality_combinations(
+        _TinyModel(), _loader_with_ids(), device="cpu", fill="zero")
+    full = results[combo_label(frozenset({0, 1, 2, 3}))]
+    assert set(full.keys()) == {"BraTS-Africa-007", "Erasmus-013"}

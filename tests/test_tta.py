@@ -72,7 +72,7 @@ def test_bn_adapt_without_batchnorm_returns_module():
 
 def test_bn_adapt_warns_when_no_batchnorm(caplog):
     """bn_adapt on a BatchNorm-free (e.g. GroupNorm) model must not silently
-    no-op — it logs a warning so the inert call is visible. [audit S1-C]"""
+    no-op - it logs a warning so the inert call is visible. [audit S1-C]"""
     import logging
     model = nn.Sequential(nn.Conv3d(4, 4, 3, padding=1), nn.GroupNorm(2, 4))
     with caplog.at_level(logging.WARNING):

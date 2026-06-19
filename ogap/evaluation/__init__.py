@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from .brats_metrics import compute_brats_metrics
-from .stats import paired_significance_table, wilcoxon_significance_table
+from .stats import (
+    noninferiority_table,
+    paired_significance_table,
+    wilcoxon_significance_table,
+)
 from .hardware_metrics import measure_hardware_metrics
 from .tables import rows_to_csv, rows_to_latex
 from .modality_robustness import (
@@ -41,6 +45,7 @@ __all__ = [
     "compute_brats_metrics",
     "paired_significance_table",
     "wilcoxon_significance_table",
+    "noninferiority_table",
     "measure_hardware_metrics",
     "rows_to_csv",
     "rows_to_latex",

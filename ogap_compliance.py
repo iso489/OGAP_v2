@@ -1,12 +1,12 @@
-"""ogap_compliance.py — Reporting-checklist compliance utilities for OGAP v2.
+"""ogap_compliance.py - Reporting-checklist compliance utilities for OGAP v2.
 
 This module fills the gaps required by four reporting checklists for the OGAP
 glioma-segmentation manuscript and pipeline:
 
     • CLAIM 2024  (Tejani et al., Radiology AI 2024)
-        - Checklist for Artificial Intelligence in Medical Imaging — 44 items.
+        - Checklist for Artificial Intelligence in Medical Imaging - 44 items.
     • TRIPOD+AI   (Collins et al., BMJ 2024)
-        - Transparent Reporting of a multivariable prediction model — 27 items.
+        - Transparent Reporting of a multivariable prediction model - 27 items.
     • SAGER 2022  (Heidari et al., EASE European Science Editing)
         - Sex and Gender Equity in Research checklist.
     • NIHMS RAND REACH (Malika et al., Ethics Med Public Health 2025)
@@ -90,7 +90,7 @@ DESIGN NOTES
 • All functions are pure: they take inputs and return dict / float / np.ndarray.
   The orchestrator (`cmd_ai_compliance_report`) is the only side-effecting
   entry point, and it only writes JSON / CSV under a user-specified directory.
-• No heavy ML imports at top level — torch and sklearn are imported lazily.
+• No heavy ML imports at top level - torch and sklearn are imported lazily.
 • When scipy / sklearn are unavailable, fairness and slope/intercept silently
   fall back to numpy-only equivalents and emit a warning in the JSON.
 • Every output file is named by checklist item ("claim_38_class_imbalance.json")
@@ -125,12 +125,12 @@ LOG = logging.getLogger("OGAP.compliance")
 
 CLAIM_CHECKLIST_MAPPING: Dict[int, Dict[str, str]] = {
     1:  {"item": "Identification as AI methodology study",
-         "where": "manuscript title / abstract", "code": "—"},
-    2:  {"item": "Abstract summary", "where": "manuscript abstract", "code": "—"},
-    3:  {"item": "Scientific / clinical background", "where": "manuscript Introduction", "code": "—"},
-    4:  {"item": "Study aims, objectives, hypotheses", "where": "manuscript Introduction", "code": "—"},
-    5:  {"item": "Prospective or retrospective", "where": "manuscript Methods", "code": "—"},
-    6:  {"item": "Study goal", "where": "manuscript Methods", "code": "—"},
+         "where": "manuscript title / abstract", "code": "-"},
+    2:  {"item": "Abstract summary", "where": "manuscript abstract", "code": "-"},
+    3:  {"item": "Scientific / clinical background", "where": "manuscript Introduction", "code": "-"},
+    4:  {"item": "Study aims, objectives, hypotheses", "where": "manuscript Introduction", "code": "-"},
+    5:  {"item": "Prospective or retrospective", "where": "manuscript Methods", "code": "-"},
+    6:  {"item": "Study goal", "where": "manuscript Methods", "code": "-"},
     7:  {"item": "Data sources",
          "where": "compliance_report/datasheet/DATASHEET.md",
          "code": "cmd_datasheet"},
@@ -145,7 +145,7 @@ CLAIM_CHECKLIST_MAPPING: Dict[int, Dict[str, str]] = {
          "code": "cmd_datasheet"},
     11: {"item": "De-identification methods",
          "where": "compliance_report/datasheet/DATASHEET.md",
-         "code": "—  (BraTS / UTSW data already de-identified by source)"},
+         "code": "-  (BraTS / UTSW data already de-identified by source)"},
     12: {"item": "Missing data handling",
          "where": "compliance_report/missing_data.json",
          "code": "random_modality_mask(), supported_modality_combinations()"},
@@ -154,7 +154,7 @@ CLAIM_CHECKLIST_MAPPING: Dict[int, Dict[str, str]] = {
          "code": "cmd_datasheet"},
     14: {"item": "Reference standard methodology",
          "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
-    15: {"item": "Rationale for reference standard", "where": "manuscript Methods", "code": "—"},
+    15: {"item": "Rationale for reference standard", "where": "manuscript Methods", "code": "-"},
     16: {"item": "Source of reference standard annotations",
          "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
     17: {"item": "Annotation of test set",
@@ -165,7 +165,7 @@ CLAIM_CHECKLIST_MAPPING: Dict[int, Dict[str, str]] = {
          "where": "compliance_report/data_flow.dot", "code": "cmd_data_flow"},
     20: {"item": "Level at which partitions are disjoint (patient)",
          "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
-    21: {"item": "Intended sample size", "where": "manuscript Methods", "code": "—"},
+    21: {"item": "Intended sample size", "where": "manuscript Methods", "code": "-"},
     22: {"item": "Detailed model description",
          "where": "compliance_report/model_card/MODEL_CARD.md",
          "code": "cmd_model_card"},
@@ -201,7 +201,7 @@ CLAIM_CHECKLIST_MAPPING: Dict[int, Dict[str, str]] = {
          "code": "evaluate_student"},
     33: {"item": "Testing on external data",
          "where": "Results/utsw_full_evaluation_tta_*/", "code": "evaluate (subcommand)"},
-    34: {"item": "Clinical trial registration", "where": "manuscript Methods", "code": "—"},
+    34: {"item": "Clinical trial registration", "where": "manuscript Methods", "code": "-"},
     35: {"item": "Numbers of patients included / excluded",
          "where": "compliance_report/data_flow.dot",
          "code": "cmd_data_flow"},
@@ -218,25 +218,25 @@ CLAIM_CHECKLIST_MAPPING: Dict[int, Dict[str, str]] = {
     39: {"item": "Failure analysis of incorrect results",
          "where": "compliance_report/failure_case_figure/ + clinical_failure_modes/",
          "code": "cmd_failure_case_figure, clinical_failure_mode_analysis"},
-    40: {"item": "Study limitations", "where": "manuscript Discussion", "code": "—"},
-    41: {"item": "Implications for practice", "where": "manuscript Discussion", "code": "—"},
+    40: {"item": "Study limitations", "where": "manuscript Discussion", "code": "-"},
+    41: {"item": "Implications for practice", "where": "manuscript Discussion", "code": "-"},
     42: {"item": "Study protocol reference", "where": "manuscript Other Information",
-         "code": "—"},
+         "code": "-"},
     43: {"item": "Software / model / data availability",
          "where": "manuscript Other Information",
          "code": "compliance_report/claim_23_environment.json captures repo state"},
-    44: {"item": "Sources of funding", "where": "manuscript Other Information", "code": "—"},
+    44: {"item": "Sources of funding", "where": "manuscript Other Information", "code": "-"},
 }
 
 TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
-    "1":   {"item": "Title (multivariable prediction model)", "where": "manuscript title",     "code": "—"},
-    "2":   {"item": "Abstract",                               "where": "manuscript abstract",  "code": "—"},
-    "3a":  {"item": "Healthcare context / rationale",         "where": "manuscript Introduction", "code": "—"},
-    "3b":  {"item": "Target population / intended users",     "where": "manuscript Introduction", "code": "—"},
+    "1":   {"item": "Title (multivariable prediction model)", "where": "manuscript title",     "code": "-"},
+    "2":   {"item": "Abstract",                               "where": "manuscript abstract",  "code": "-"},
+    "3a":  {"item": "Healthcare context / rationale",         "where": "manuscript Introduction", "code": "-"},
+    "3b":  {"item": "Target population / intended users",     "where": "manuscript Introduction", "code": "-"},
     "3c":  {"item": "Health inequalities by sociodemographics",
             "where": "compliance_report/sex_breakdown.json + stratify/",
             "code": "compute_sex_breakdown, cmd_stratify"},
-    "4":   {"item": "Study objectives",                       "where": "manuscript Introduction", "code": "—"},
+    "4":   {"item": "Study objectives",                       "where": "manuscript Introduction", "code": "-"},
     "5a":  {"item": "Data sources for development AND evaluation",
             "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
     "5b":  {"item": "Dates of participant accrual / follow-up",
@@ -245,7 +245,7 @@ TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
             "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
     "6b":  {"item": "Eligibility criteria",
             "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
-    "6c":  {"item": "Treatments received",                    "where": "manuscript Methods",   "code": "—"},
+    "6c":  {"item": "Treatments received",                    "where": "manuscript Methods",   "code": "-"},
     "7":   {"item": "Data pre-processing / quality checking",
             "where": "compliance_report/preprocessing.json",
             "code": "preprocess_mri_volume(), cmd_lint_csv"},
@@ -253,7 +253,7 @@ TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
             "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
     "8b":  {"item": "Outcome assessment method",
             "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
-    "8c":  {"item": "Blinding of outcome assessors",          "where": "manuscript Methods",   "code": "—"},
+    "8c":  {"item": "Blinding of outcome assessors",          "where": "manuscript Methods",   "code": "-"},
     "9a":  {"item": "Initial predictors / pre-selection",
             "where": "compliance_report/model_card/MODEL_CARD.md",
             "code": "cmd_model_card (input modalities listed)"},
@@ -262,7 +262,7 @@ TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
             "code": "cmd_datasheet"},
     "9c":  {"item": "Predictor assessor qualifications",
             "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
-    "10":  {"item": "Sample size justification",             "where": "manuscript Methods",   "code": "—"},
+    "10":  {"item": "Sample size justification",             "where": "manuscript Methods",   "code": "-"},
     "11":  {"item": "Missing data handling",
             "where": "compliance_report/missing_data.json",
             "code": "random_modality_mask, missing-mode robustness in evaluate"},
@@ -281,7 +281,7 @@ TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
     "12e": {"item": "Performance evaluation measures (discrimination, calibration, clinical utility)",
             "where": "compliance_report/calibration/ + tripod_12e_calibration_slope.json",
             "code": "cmd_calibration, compute_calibration_slope_intercept"},
-    "12f": {"item": "Model updating",                        "where": "manuscript Methods",   "code": "—"},
+    "12f": {"item": "Model updating",                        "where": "manuscript Methods",   "code": "-"},
     "12g": {"item": "Model output formula / API",
             "where": "compliance_report/model_card/MODEL_CARD.md + ONNX export",
             "code": "cmd_model_card + export_to_onnx"},
@@ -297,16 +297,16 @@ TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
     "16":  {"item": "Differences development vs. evaluation setting",
             "where": "compliance_report/datasheet/DATASHEET.md (UTSW vs BraTS comparison)",
             "code": "cmd_datasheet"},
-    "17":  {"item": "Ethics / informed consent",             "where": "manuscript Methods",   "code": "—"},
-    "18a": {"item": "Funding source",                         "where": "manuscript Other",    "code": "—"},
-    "18b": {"item": "Conflicts of interest",                  "where": "manuscript Other",    "code": "—"},
-    "18c": {"item": "Protocol availability",                  "where": "manuscript Other",    "code": "—"},
-    "18d": {"item": "Study registration",                     "where": "manuscript Other",    "code": "—"},
-    "18e": {"item": "Data availability",                      "where": "manuscript Other",    "code": "—"},
+    "17":  {"item": "Ethics / informed consent",             "where": "manuscript Methods",   "code": "-"},
+    "18a": {"item": "Funding source",                         "where": "manuscript Other",    "code": "-"},
+    "18b": {"item": "Conflicts of interest",                  "where": "manuscript Other",    "code": "-"},
+    "18c": {"item": "Protocol availability",                  "where": "manuscript Other",    "code": "-"},
+    "18d": {"item": "Study registration",                     "where": "manuscript Other",    "code": "-"},
+    "18e": {"item": "Data availability",                      "where": "manuscript Other",    "code": "-"},
     "18f": {"item": "Code availability",
             "where": "compliance_report/claim_23_environment.json (commit hash + repo URL)",
             "code": "dump_environment_snapshot"},
-    "19":  {"item": "Patient and public involvement",         "where": "manuscript Methods",   "code": "—"},
+    "19":  {"item": "Patient and public involvement",         "where": "manuscript Methods",   "code": "-"},
     "20a": {"item": "Flow of participants",
             "where": "compliance_report/data_flow.dot",       "code": "cmd_data_flow"},
     "20b": {"item": "Characteristics by source / setting",
@@ -325,31 +325,31 @@ TRIPOD_AI_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
             "code": "cmd_stratify (uses bootstrap_ci)"},
     "23b": {"item": "Heterogeneity in performance across clusters",
             "where": "compliance_report/loso_cv/", "code": "cmd_loso_cv"},
-    "24":  {"item": "Model updating results",                 "where": "manuscript Results",  "code": "—"},
-    "25":  {"item": "Interpretation including fairness",      "where": "manuscript Discussion","code": "—"},
-    "26":  {"item": "Limitations",                            "where": "manuscript Discussion","code": "—"},
+    "24":  {"item": "Model updating results",                 "where": "manuscript Results",  "code": "-"},
+    "25":  {"item": "Interpretation including fairness",      "where": "manuscript Discussion","code": "-"},
+    "26":  {"item": "Limitations",                            "where": "manuscript Discussion","code": "-"},
     "27a": {"item": "How poor-quality input is handled",
             "where": "compliance_report/preprocessing.json + missing_data.json",
             "code": "preprocess_mri_volume + modality dropout fallback"},
-    "27b": {"item": "User interaction with input data",       "where": "manuscript Discussion","code": "—"},
-    "27c": {"item": "Future research directions",             "where": "manuscript Discussion","code": "—"},
+    "27b": {"item": "User interaction with input data",       "where": "manuscript Discussion","code": "-"},
+    "27c": {"item": "Future research directions",             "where": "manuscript Discussion","code": "-"},
 }
 
 SAGER_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
-    # Table 1 — studies with human participants (BraTS / UTSW are human imaging data)
+    # Table 1 - studies with human participants (BraTS / UTSW are human imaging data)
     "1":   {"item": "Sex / gender terminology used appropriately",
-            "where": "manuscript", "code": "—"},
+            "where": "manuscript", "code": "-"},
     "2":   {"item": "Title specifies sex/gender if only one included",
-            "where": "manuscript title (N/A — both sexes)", "code": "—"},
+            "where": "manuscript title (N/A - both sexes)", "code": "-"},
     "3a":  {"item": "Abstract specifies sex/gender if only one included",
-            "where": "manuscript abstract (N/A — both sexes)", "code": "—"},
+            "where": "manuscript abstract (N/A - both sexes)", "code": "-"},
     "3b":  {"item": "Study population sex/gender breakdown",
             "where": "compliance_report/sex_breakdown.json",
             "code": "compute_sex_breakdown"},
     "4a":  {"item": "Citation of prior sex/gender-difference studies",
-            "where": "manuscript Introduction", "code": "—"},
+            "where": "manuscript Introduction", "code": "-"},
     "4b":  {"item": "Whether sex/gender is an important variant",
-            "where": "manuscript Introduction", "code": "—"},
+            "where": "manuscript Introduction", "code": "-"},
     "4c":  {"item": "Disease-prevalence demographics by sex/gender",
             "where": "compliance_report/sex_breakdown.json + datasheet/",
             "code": "compute_sex_breakdown, cmd_datasheet"},
@@ -366,20 +366,20 @@ SAGER_CHECKLIST_MAPPING: Dict[str, Dict[str, str]] = {
     "6c":  {"item": "Sex/gender-based analyses regardless of outcome",
             "where": "compliance_report/stratify/stratified_summary.json",
             "code": "cmd_stratify"},
-    "6d":  {"item": "Adverse-event data disaggregated", "where": "N/A — non-clinical-trial study", "code": "—"},
-    "6e":  {"item": "Patient-reported outcomes disaggregated", "where": "N/A", "code": "—"},
+    "6d":  {"item": "Adverse-event data disaggregated", "where": "N/A - non-clinical-trial study", "code": "-"},
+    "6e":  {"item": "Patient-reported outcomes disaggregated", "where": "N/A", "code": "-"},
     "6f":  {"item": "Effects of other exposures across genders",
             "where": "compliance_report/stratify/", "code": "cmd_stratify"},
     "6g":  {"item": "Table 1 with sex/gender rows",
             "where": "compliance_report/sex_breakdown.json", "code": "compute_sex_breakdown"},
     "7a":  {"item": "Discussion: sex/gender implications",
-            "where": "manuscript Discussion", "code": "—"},
+            "where": "manuscript Discussion", "code": "-"},
     "7b":  {"item": "Rationale if sex/gender analysis not done",
-            "where": "manuscript Discussion (N/A — analysis was done)", "code": "—"},
+            "where": "manuscript Discussion (N/A - analysis was done)", "code": "-"},
 }
 
 NIHMS_HEALTH_EQUITY_MAPPING: Dict[str, Dict[str, str]] = {
-    # RAND REACH Center checklist (Malika et al. 2025) — items that map to code
+    # RAND REACH Center checklist (Malika et al. 2025) - items that map to code
     "data_collection_1":  {"item": "Collect relevant demographic information",
                            "where": "compliance_report/sex_breakdown.json + stratify/ "
                                     "(sex, age, race, ethnicity, IDH, grade, MGMT, scanner)",
@@ -387,9 +387,9 @@ NIHMS_HEALTH_EQUITY_MAPPING: Dict[str, Dict[str, str]] = {
     "data_collection_2":  {"item": "Consider risks for sensitive questions",
                            "where": "compliance_report/datasheet/DATASHEET.md", "code": "cmd_datasheet"},
     "data_collection_3":  {"item": "Cultural-humility training for data collectors",
-                           "where": "manuscript Methods", "code": "—"},
+                           "where": "manuscript Methods", "code": "-"},
     "data_collection_4":  {"item": "Iterative community feedback mechanisms",
-                           "where": "manuscript Methods", "code": "—"},
+                           "where": "manuscript Methods", "code": "-"},
     "data_collection_5":  {"item": "Stratified analysis by demographic groups",
                            "where": "compliance_report/stratify/stratified_summary.json + "
                                     "tripod_14_fairness.json",
@@ -402,7 +402,7 @@ NIHMS_HEALTH_EQUITY_MAPPING: Dict[str, Dict[str, str]] = {
                            "code": "lmic_field_strength_prior + grade23/idh_mutant/legacy_protocol "
                                    "sampling biases"},
     "research_design_2":  {"item": "Appropriate research methods for population",
-                           "where": "manuscript Methods", "code": "—"},
+                           "where": "manuscript Methods", "code": "-"},
     "research_design_3":  {"item": "Accessibility / inclusivity in design",
                            "where": "INT8 export → CPU-only deployment for LMIC clinics",
                            "code": "export_to_onnx INT8"},
@@ -410,11 +410,11 @@ NIHMS_HEALTH_EQUITY_MAPPING: Dict[str, Dict[str, str]] = {
                            "where": "compliance_report/model_card/MODEL_CARD.md (intended audience)",
                            "code": "cmd_model_card"},
     "dissemination_2":    {"item": "Sustainability / capacity building",
-                           "where": "manuscript Discussion", "code": "—"},
+                           "where": "manuscript Discussion", "code": "-"},
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  HELPERS — JSON / CSV / lazy imports
+#  HELPERS - JSON / CSV / lazy imports
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _ensure_dir(p: Union[str, Path]) -> Path:
@@ -464,7 +464,7 @@ def _try_import(module_name: str):
     try:
         return __import__(module_name)
     except ImportError:
-        return None  # genuinely not installed — silence is fine
+        return None  # genuinely not installed - silence is fine
     except Exception as exc:
         # Installed but broken (e.g. a shared-library load error) must NOT look identical
         # to "not installed": a silent fallback would mislabel the TRIPOD 12e method or
@@ -475,7 +475,7 @@ def _try_import(module_name: str):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  CLAIM 23 — Software / hardware environment snapshot
+#  CLAIM 23 - Software / hardware environment snapshot
 # ══════════════════════════════════════════════════════════════════════════════
 
 def dump_environment_snapshot(
@@ -622,7 +622,7 @@ def _read_pip_freeze() -> List[str]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  CLAIM 24 — Initialization report
+#  CLAIM 24 - Initialization report
 # ══════════════════════════════════════════════════════════════════════════════
 
 def dump_initialization_report(
@@ -630,7 +630,7 @@ def dump_initialization_report(
     out_dir: Union[str, Path],
     *,
     transfer_learning_ckpt: Optional[Union[str, Path]] = None,
-    transfer_learning_role: str = "—",
+    transfer_learning_role: str = "-",
 ) -> Dict[str, Any]:
     """Emit a per-layer initialization report.
 
@@ -729,7 +729,7 @@ def _guess_init_scheme(
 ) -> str:
     """Heuristic identification of the init scheme from empirical statistics.
 
-    Conservative — when in doubt returns ``'unknown'`` rather than guess.
+    Conservative - when in doubt returns ``'unknown'`` rather than guess.
     """
     if was_transferred:
         return "transferred_from_ckpt"
@@ -761,7 +761,7 @@ def _guess_init_scheme(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  TRIPOD 12e — Calibration slope and intercept (canonical Cox 1958)
+#  TRIPOD 12e - Calibration slope and intercept (canonical Cox 1958)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_calibration_slope_intercept(
@@ -773,7 +773,7 @@ def compute_calibration_slope_intercept(
     """Calibration slope and calibration-in-the-large.
 
     TRIPOD+AI Item 12e: discrimination + **calibration** + clinical utility.
-    ECE alone does not satisfy TRIPOD+AI — it asks for the canonical
+    ECE alone does not satisfy TRIPOD+AI - it asks for the canonical
     calibration slope and intercept (Cox 1958, Steyerberg 2010 *Clinical
     Prediction Models*, Steyerberg & Vergouwe 2014).
 
@@ -784,7 +784,7 @@ def compute_calibration_slope_intercept(
         - α = 0   indicates calibration-in-the-large (no over / under-prediction).
 
     For multi-class segmentation we collapse to ``foreground vs background``
-    (Y = any tumour class) — this is the most clinically actionable summary.
+    (Y = any tumour class) - this is the most clinically actionable summary.
 
     Args
     ----
@@ -831,7 +831,7 @@ def compute_calibration_slope_intercept(
             X = smapi.add_constant(logit_p)
             res = smapi.Logit(y, X).fit(disp=False)
             return {
-                "checklist_item": "TRIPOD+AI Item 12e — calibration slope/intercept",
+                "checklist_item": "TRIPOD+AI Item 12e - calibration slope/intercept",
                 "intercept": float(res.params[0]),
                 "slope":     float(res.params[1]),
                 "intercept_se": float(res.bse[0]),
@@ -873,7 +873,7 @@ def compute_calibration_slope_intercept(
     cov = np.linalg.pinv(X.T @ (X * W[:, None]))
     se = np.sqrt(np.maximum(np.diag(cov), 0.0))
     return {
-        "checklist_item": "TRIPOD+AI Item 12e — calibration slope/intercept",
+        "checklist_item": "TRIPOD+AI Item 12e - calibration slope/intercept",
         "intercept": float(beta[0]),
         "slope":     float(beta[1]),
         "intercept_se": float(se[0]),
@@ -886,7 +886,7 @@ def compute_calibration_slope_intercept(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  CLAIM 38 / TRIPOD 13 — Class-imbalance-aware metrics
+#  CLAIM 38 / TRIPOD 13 - Class-imbalance-aware metrics
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_class_imbalance_metrics(
@@ -906,7 +906,7 @@ def compute_class_imbalance_metrics(
     or the model predictions."
 
     Returns balanced accuracy, Matthews Correlation Coefficient, PR-AUC,
-    ROC-AUC, sensitivity, specificity, PPV, NPV, prevalence — each one
+    ROC-AUC, sensitivity, specificity, PPV, NPV, prevalence - each one
     independent of the class imbalance ratio.
 
     Args
@@ -973,7 +973,7 @@ def _auc_pair(p: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
             return pr_auc, roc_auc
         except Exception as exc:
             LOG.warning("[auc_pair] sklearn AUC failed (%s); using the numpy trapezoid "
-                        "fallback — verify AUC validity.", exc)
+                        "fallback - verify AUC validity.", exc)
     # Numpy fallback (trapezoid-rule + sort).
     order = np.argsort(-p)
     y_sorted = y[order]
@@ -991,7 +991,7 @@ def _auc_pair(p: np.ndarray, y: np.ndarray) -> Tuple[float, float]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  TRIPOD 14 / NIHMS — Fairness metrics
+#  TRIPOD 14 / NIHMS - Fairness metrics
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_fairness_metrics(
@@ -1054,7 +1054,7 @@ def compute_fairness_metrics(
             "metric_name": metric_name,
             "sensitive_attribute_levels": list(rows.keys()),
             "per_group": rows,
-            "warning": "fewer than 2 groups with n >= min_group_n — disparity metrics undefined",
+            "warning": "fewer than 2 groups with n >= min_group_n - disparity metrics undefined",
         }
         return summary
 
@@ -1099,16 +1099,16 @@ def compute_concentration_index(
     Definition.  Sort cases by socioeconomic rank R ∈ [0, 1] (e.g.,
     health-area income-decile, or local field-strength availability index
     for an LMIC study).  Let h_i be the per-case health metric (here Dice
-    or 1-FPR — anything where higher = better).  The concentration index is
+    or 1-FPR - anything where higher = better).  The concentration index is
 
         CI = 2 / (n · μ_h) · Σ_i  (h_i · (R_i - 0.5))
 
     interpretation:
         CI > 0  →  better metric concentrated among higher-rank (richer) groups
-                   (i.e., model favours high-resource sites — INEQUITABLE)
+                   (i.e., model favours high-resource sites - INEQUITABLE)
         CI = 0  →  perfect equality across socioeconomic rank
         CI < 0  →  better metric concentrated among lower-rank (poorer) groups
-                   (i.e., model favours under-resourced sites — pro-poor)
+                   (i.e., model favours under-resourced sites - pro-poor)
 
     For an LMIC-deployment study the desirable direction is CI ≤ 0 (the
     model performs at least as well at low-resource sites).
@@ -1147,7 +1147,7 @@ def compute_concentration_index(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  SAGER 3b / 4c / 5a / 6a — Sex / gender breakdown
+#  SAGER 3b / 4c / 5a / 6a - Sex / gender breakdown
 # ══════════════════════════════════════════════════════════════════════════════
 
 # Missing-value sentinels seen across the real cohort metadata: blank, textual
@@ -1164,7 +1164,7 @@ def compute_sex_breakdown(
     sex_columns: Sequence[str] = ("Sex at birth", "sex", "Sex", "Sex_clean", "gender", "Gender"),
     definition_method: str = (
         "Sex extracted from source dataset metadata "
-        "(BraTS / UTSW manifest); mode of ascertainment varies by source — "
+        "(BraTS / UTSW manifest); mode of ascertainment varies by source - "
         "self-report, EHR-derived, or chart-review per source documentation."
     ),
 ) -> Dict[str, Any]:
@@ -1175,12 +1175,12 @@ def compute_sex_breakdown(
     Args
     ----
     csv_path : Path
-        Manifest CSV — expected to contain at least a sex column (one of
+        Manifest CSV - expected to contain at least a sex column (one of
         the names in ``sex_columns``).
     sex_columns : sequence of str
         Candidate column names; the first one present is used.
     definition_method : str
-        SAGER 5a — how sex was defined / ascertained.  Override at call
+        SAGER 5a - how sex was defined / ascertained.  Override at call
         site if your data source uses something more specific.
 
     Returns
@@ -1248,7 +1248,7 @@ def _normalize_sex_value(v: str) -> str:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  TRIPOD 20c — Demographic distribution comparison (development vs. evaluation)
+#  TRIPOD 20c - Demographic distribution comparison (development vs. evaluation)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def compute_development_vs_evaluation_table(
@@ -1322,7 +1322,7 @@ def _value_counts(rows: Sequence[Dict[str, str]], col: str) -> Dict[str, int]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-#  Orchestrator subcommand — `ai_compliance_report`
+#  Orchestrator subcommand - `ai_compliance_report`
 # ══════════════════════════════════════════════════════════════════════════════
 
 def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
@@ -1370,7 +1370,7 @@ def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
     if getattr(args, "ckpt", None):
         torch = _try_import("torch")
         if torch is None:
-            LOG.warning("[ai_compliance_report] torch unavailable — skipping init report")
+            LOG.warning("[ai_compliance_report] torch unavailable - skipping init report")
         else:
             try:
                 ckpt = torch.load(args.ckpt, map_location="cpu", weights_only=True)
@@ -1392,7 +1392,7 @@ def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
                 bundle["outputs"]["claim_24_initialization"] = dump_initialization_report(
                     container, out_dir,
                     transfer_learning_ckpt=args.ckpt,
-                    transfer_learning_role=getattr(args, "ckpt_role", "—"),
+                    transfer_learning_role=getattr(args, "ckpt_role", "-"),
                 )
             except Exception as exc:
                 LOG.error("[ai_compliance_report] init report FAILED: %s", exc)
@@ -1416,7 +1416,7 @@ def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
         _save_json(bundle["outputs"]["tripod_20c_dev_vs_eval"],
                    out_dir / "tripod_20c_development_vs_evaluation.json")
 
-    # 5–6. Class-imbalance + calibration slope/intercept from a probs NPZ.
+    # 5-6. Class-imbalance + calibration slope/intercept from a probs NPZ.
     probs_npz = getattr(args, "probs_npz", None)
     if probs_npz and Path(probs_npz).exists():
         try:
@@ -1436,7 +1436,7 @@ def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
             bundle["sections_failed"].extend(
                 ["claim_38_class_imbalance", "tripod_12e_calibration_slope"])
 
-    # 7. Fairness — needs per-case metrics CSV plus a sensitive-attribute column.
+    # 7. Fairness - needs per-case metrics CSV plus a sensitive-attribute column.
     per_case_csv = getattr(args, "per_case_csv", None)
     sensitive_attribute = getattr(args, "sensitive_attribute", None)
     metric_col = getattr(args, "metric_col", "pp_all_dice_brats_mean")
@@ -1454,7 +1454,7 @@ def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
             _save_json(bundle["outputs"]["tripod_14_fairness"],
                        out_dir / "tripod_14_fairness.json")
 
-    # 8. Concentration index — needs per-case metrics + numeric SES rank.
+    # 8. Concentration index - needs per-case metrics + numeric SES rank.
     ses_rank_col = getattr(args, "ses_rank_col", None)
     if per_case_csv and ses_rank_col and Path(per_case_csv).exists():
         rows = list(_iter_rows(per_case_csv))
@@ -1493,7 +1493,7 @@ def cmd_ai_compliance_report(args: Any, core: Any) -> None:  # noqa: ANN401
                   bundle["sections_failed"])
     _save_json(bundle, out_dir / "compliance_report.json")
     _save_compliance_checklist_csv(out_dir / "compliance_checklist.csv")
-    LOG.info("[ai_compliance_report] done — %s", out_dir / "compliance_report.json")
+    LOG.info("[ai_compliance_report] done - %s", out_dir / "compliance_report.json")
 
 
 def _safe_float(s: Any) -> Optional[float]:

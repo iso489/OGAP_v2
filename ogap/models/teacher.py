@@ -8,10 +8,13 @@ Swin UNETR implementation.
 from __future__ import annotations
 
 import logging
+import math
+import os
 from typing import Dict, Tuple
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 from .blocks import (
     DenseConvBlock3D,
@@ -64,7 +67,7 @@ class UNet3DTeacher(nn.Module):
         # FIX (Gap A, 2026 audit): Inject MixStyle3D after encoder block 1 and
         # block 2.  Only the student previously had feature-level domain
         # randomization, so the teacher logits used for KD encoded no
-        # cross-scanner invariance — distillation then transferred only the
+        # cross-scanner invariance - distillation then transferred only the
         # data-augmentation noise distribution to the student.  Putting
         # MixStyle3D in the teacher pushes domain-invariant features into the
         # KD signal itself.  MixStyle3D is an identity at eval, so this only
@@ -198,8 +201,8 @@ class _FeatureUncertaintyEnhancement3D(nn.Module):
     Implements the paper's Eq. 4 exactly: a channel-mean sigmoid gate
     ``z̄ = σ(mean_C(z))``, uncertainty ``u = -z̄·log(z̄)``, and re-weighted skip
     feature ``z̃ = z + z·(1 - u)``. The single-term ``-z̄·log z̄`` form IS the
-    SegMamba formulation — not a reduced Bernoulli entropy and not an
-    approximation — so this module is faithful to the reference implementation.
+    SegMamba formulation - not a reduced Bernoulli entropy and not an
+    approximation - so this module is faithful to the reference implementation.
     """
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -210,6 +213,116 @@ class _FeatureUncertaintyEnhancement3D(nn.Module):
 
 def _crop_like(skip: torch.Tensor, ref: torch.Tensor) -> torch.Tensor:
     return skip[..., :ref.shape[2], :ref.shape[3], :ref.shape[4]]
+
+
+class _MinimalMamba(nn.Module):
+    """Pure-PyTorch selective state-space (Mamba / S6) block.
+
+    A portable, ``torch.compile``-able, CPU-testable drop-in for
+    ``mamba_ssm.Mamba`` (Gu & Dao, arXiv:2312.00752). It matches the public
+    constructor signature ``Mamba(d_model, d_state, d_conv, expand)`` and the
+    ``(B, L, d_model) -> (B, L, d_model)`` forward contract used by
+    :class:`_TriOrientedMamba3D`, and implements the *exact* selective recurrence
+    (input-dependent Δ, B, C; discretise Ā=exp(ΔA), B̄u=ΔBx; scan
+    hₜ=Āₜhₜ₋₁+B̄uₜ, yₜ=Cₜ·hₜ + D·xₜ).
+
+    Trade-off (state this in any paper that uses it): the scan is an explicit
+    sequential loop over the flattened sequence, so it is CORRECT but much slower
+    than the fused CUDA kernel - it exists for environments without ``mamba-ssm``
+    (CPU unit tests, debugging, reproducibility), NOT production-scale training.
+    It is also NOT weight-compatible with ``mamba_ssm.Mamba`` (different internal
+    parameterisation), so a checkpoint trained with one backend must be evaluated
+    with the same backend.
+    """
+
+    def __init__(self, d_model: int, d_state: int = 16, d_conv: int = 4,
+                 expand: int = 2, dt_rank: object = "auto") -> None:
+        super().__init__()
+        self.d_model = int(d_model)
+        self.d_state = int(d_state)
+        self.d_conv = int(d_conv)
+        self.d_inner = int(expand) * self.d_model
+        self.dt_rank = (math.ceil(self.d_model / 16) if dt_rank == "auto"
+                        else int(dt_rank))
+
+        self.in_proj = nn.Linear(self.d_model, self.d_inner * 2, bias=False)
+        # Depthwise *causal* conv over the sequence (pad left by d_conv-1, crop right).
+        self.conv1d = nn.Conv1d(
+            self.d_inner, self.d_inner, kernel_size=self.d_conv,
+            groups=self.d_inner, padding=self.d_conv - 1, bias=True,
+        )
+        self.x_proj = nn.Linear(self.d_inner, self.dt_rank + self.d_state * 2, bias=False)
+        self.dt_proj = nn.Linear(self.dt_rank, self.d_inner, bias=True)
+        # A := -exp(A_log) keeps the state matrix negative (stable decay);
+        # S4D-real init A_n = n (1..d_state) per inner channel.
+        a = torch.arange(1, self.d_state + 1, dtype=torch.float32).repeat(self.d_inner, 1)
+        self.A_log = nn.Parameter(torch.log(a))
+        self.D = nn.Parameter(torch.ones(self.d_inner))
+        self.out_proj = nn.Linear(self.d_inner, self.d_model, bias=False)
+        # Standard Mamba Δ-bias init: softplus(bias) ~ U[dt_min, dt_max].
+        with torch.no_grad():
+            dt = torch.exp(
+                torch.rand(self.d_inner) * (math.log(0.1) - math.log(1e-3)) + math.log(1e-3)
+            ).clamp(min=1e-4)
+            self.dt_proj.bias.copy_(dt + torch.log(-torch.expm1(-dt)))  # inverse softplus
+
+    def _selective_scan(self, x: torch.Tensor) -> torch.Tensor:
+        b, l, d = x.shape
+        n = self.d_state
+        A = -torch.exp(self.A_log.float())                       # (d_inner, n)
+        x_dbl = self.x_proj(x)                                   # (B, L, dt_rank+2n)
+        dt, B_, C = torch.split(x_dbl, [self.dt_rank, n, n], dim=-1)
+        dt = F.softplus(self.dt_proj(dt))                        # (B, L, d_inner)
+        delta_a = torch.exp(dt.unsqueeze(-1) * A)                # (B, L, d_inner, n)
+        delta_bu = dt.unsqueeze(-1) * B_.unsqueeze(2) * x.unsqueeze(-1)  # (B, L, d_inner, n)
+        h = x.new_zeros(b, d, n)
+        ys = []
+        for t in range(l):
+            h = delta_a[:, t] * h + delta_bu[:, t]               # (B, d_inner, n)
+            ys.append(torch.einsum("bdn,bn->bd", h, C[:, t]))    # (B, d_inner)
+        y = torch.stack(ys, dim=1)                               # (B, L, d_inner)
+        return y + x * self.D
+
+    def forward(self, u: torch.Tensor) -> torch.Tensor:
+        b, l, _ = u.shape
+        x, z = self.in_proj(u).chunk(2, dim=-1)                  # each (B, L, d_inner)
+        x = self.conv1d(x.transpose(1, 2))[..., :l].transpose(1, 2)  # causal depthwise conv
+        x = F.silu(x)
+        y = self._selective_scan(x)
+        y = y * F.silu(z)                                        # gated output
+        return self.out_proj(y)
+
+
+def _segmamba_fallback_enabled(explicit: bool) -> bool:
+    if explicit:
+        return True
+    return os.environ.get("OGAP_SEGMAMBA_ALLOW_FALLBACK", "").strip().lower() in (
+        "1", "true", "yes", "on")
+
+
+def _resolve_mamba_cls(allow_pure_pytorch_fallback: bool):
+    """Return the Mamba block class: the fused CUDA kernel when ``mamba-ssm`` is
+    importable, else the pure-PyTorch :class:`_MinimalMamba` if (and only if) the
+    fallback is opted into. Refusing to substitute silently preserves the
+    checkpoint-safety invariant - the two backends are NOT weight-compatible."""
+    try:
+        from mamba_ssm import Mamba
+        return Mamba
+    except ImportError as exc:
+        if _segmamba_fallback_enabled(allow_pure_pytorch_fallback):
+            LOG.warning(
+                "[SegMamba] mamba-ssm unavailable - using the pure-PyTorch "
+                "selective-scan fallback (_MinimalMamba): correct but much slower "
+                "than the CUDA kernel and NOT weight-compatible with it. Install "
+                "mamba-ssm (setup/setup_ogap_env_mamba.sh) for production speed.")
+            return _MinimalMamba
+        raise ImportError(
+            "SegMambaTeacher requires the 'mamba-ssm' package. Install with:\n"
+            "  pip install mamba-ssm causal-conv1d   (or: bash setup/setup_ogap_env_mamba.sh)\n"
+            "OR set OGAP_SEGMAMBA_ALLOW_FALLBACK=1 (or pass "
+            "allow_pure_pytorch_fallback=True) to use the slower pure-PyTorch scan.\n"
+            f"(import error: {exc})"
+        )
 
 
 class SegMambaTeacher(nn.Module):
@@ -226,16 +339,14 @@ class SegMambaTeacher(nn.Module):
         feature_dr: str = "none",
         feature_dr_p: float = 0.5,
         feature_dr_alpha: float = 0.1,
+        allow_pure_pytorch_fallback: bool = False,
     ) -> None:
         super().__init__()
-        try:
-            from mamba_ssm import Mamba
-        except ImportError as exc:
-            raise ImportError(
-                "SegMambaTeacher requires the 'mamba-ssm' package. Install with:\n"
-                "  pip install mamba-ssm causal-conv1d\n"
-                f"(import error: {exc})"
-            )
+        # Fused CUDA mamba-ssm kernel when importable; opt-in pure-PyTorch
+        # fallback (env OGAP_SEGMAMBA_ALLOW_FALLBACK=1 or the constructor flag)
+        # otherwise. Bound to the local name ``Mamba`` so the stage builders below
+        # are backend-agnostic.
+        Mamba = _resolve_mamba_cls(allow_pure_pytorch_fallback)
         b = base
         ch = (b, b * 2, b * 4, b * 8, b * 16)
         Block = _teacher_block_class(block_style)
@@ -335,7 +446,7 @@ class SwinUNETRTeacher(nn.Module):
             self.net = SwinUNETR(img_size=img_size, **kwargs)
         self.bottleneck_channels = feature_size * 16
         # MONAI SwinUNETR.decoder3 (UnetrUpBlock) emits feature_size*2 channels, not
-        # *4 — verified empirically (feature_size=24 -> decoder3 = 48). The KD pipeline
+        # *4 - verified empirically (feature_size=24 -> decoder3 = 48). The KD pipeline
         # sizes the dec3 FeatureProjector from this attribute, so a wrong value crashes
         # multi_scale_feature_distillation (cosine over dim=1) for any swin teacher with
         # lambda_feat > 0.

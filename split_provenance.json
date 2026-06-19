@@ -1,0 +1,36 @@
+{
+  "policy_version": "2026-05-OGAP-v9.1-step3",
+  "seed": 2026,
+  "internal_val_frac": 0.15,
+  "manifest": "master_manifest.csv",
+  "out_dir": ".",
+  "counts": {
+    "manifest_total": 2742,
+    "internal_per_tag": {
+      "brats_glioma": {
+        "train": 1053,
+        "val": 198,
+        "total": 1251
+      },
+      "utsw_glioma": {
+        "train": 519,
+        "val": 103,
+        "total": 622
+      }
+    },
+    "external": {
+      "brats_africa": 95,
+      "erasmus": 774
+    },
+    "unknown_dropped": 0
+  },
+  "internal_tags": [
+    "brats_glioma",
+    "utsw_glioma"
+  ],
+  "external_tags": [
+    "brats_africa",
+    "erasmus"
+  ],
+  "generated_at_unix": 1781374940
+}

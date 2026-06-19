@@ -9,15 +9,15 @@ on the median paired difference.
 
 Design choices that make the output defensible:
 
-* **Pairing is explicit** — methods are aligned by case id; only cases present in
+* **Pairing is explicit** - methods are aligned by case id; only cases present in
   both with finite values for a given metric enter that metric's test.
-* **Per-metric NaN handling** — e.g. cases with an empty reference enhancing
+* **Per-metric NaN handling** - e.g. cases with an empty reference enhancing
   region (HD95 = NaN) drop from that metric only, and the dropped count is
   reported, never silently ignored.
 * **Multiplicity control** across the whole metric family (default Holm, FWER).
 * **Effect size + CI**, not just a p-value.
 * **Lower-is-better awareness** for distance metrics (HD95).
-* **Degenerate guards** — zero post-filter pairs, all-zero differences, and
+* **Degenerate guards** - zero post-filter pairs, all-zero differences, and
   exact-test fallbacks are surfaced, not hidden.
 
 Returns plain lists of dicts (no hard pandas dependency); callers may wrap in a
@@ -27,7 +27,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Mapping, Sequence, Tuple, Union
 
 import numpy as np
 
@@ -130,28 +130,41 @@ def _norm_cdf(z: float) -> float:
 
 
 def bootstrap_median_diff_ci(diff: np.ndarray, n_boot: int = 10000, alpha: float = 0.05,
-                             seed: int = 0, bca: bool = True) -> Tuple[float, float, float]:
+                             seed: int = 0, bca: bool = True, return_method: bool = False):
     """BCa bootstrap CI for the median paired difference.
 
     The bias-corrected and accelerated interval is more accurate than the
     percentile interval for the skewed difference distributions typical of
-    Dice/HD95. Falls back to percentile if the acceleration term is degenerate.
-    Returns ``(point_estimate, ci_low, ci_high)``.
+    Dice/HD95. Silently degrading BCa→percentile would MISLABEL the interval in a
+    published table, so the method ACTUALLY used is tracked: ``"bca"`` (bias
+    correction z0 + acceleration a), ``"bias_corrected"`` (z0 only - the jackknife
+    acceleration was degenerate), or ``"percentile"`` (both dropped). Pass
+    ``return_method=True`` to receive it as a 4th element.
+
+    Returns ``(point, ci_low, ci_high)`` or, with ``return_method``,
+    ``(point, ci_low, ci_high, method)``.
     """
     d = diff[np.isfinite(diff)]
     point = float(np.median(d)) if d.size else float("nan")
     if d.size < 2:
-        return point, float("nan"), float("nan")
+        return (point, float("nan"), float("nan"), "undefined") if return_method \
+            else (point, float("nan"), float("nan"))
     rng = np.random.default_rng(seed)
     boot = np.median(d[rng.integers(0, d.size, size=(n_boot, d.size))], axis=1)
     if not bca:
-        return point, float(np.percentile(boot, 100*alpha/2)), float(np.percentile(boot, 100*(1-alpha/2)))
+        lo, hi = float(np.percentile(boot, 100*alpha/2)), float(np.percentile(boot, 100*(1-alpha/2)))
+        return (point, lo, hi, "percentile") if return_method else (point, lo, hi)
+    method = "bca"
     prop = min(max(np.mean(boot < point), 1e-6), 1 - 1e-6)
     z0 = _norm_ppf(prop)
     jack = np.array([np.median(np.delete(d, i)) for i in range(d.size)])
     jbar = jack.mean()
     den = 6.0 * (np.sum((jbar - jack) ** 2) ** 1.5)
-    a = np.sum((jbar - jack) ** 3) / den if den != 0 else 0.0
+    if den != 0:
+        a = np.sum((jbar - jack) ** 3) / den
+    else:
+        a = 0.0
+        method = "bias_corrected"   # acceleration degenerate (constant jackknife)
     zl, zu = _norm_ppf(alpha/2), _norm_ppf(1 - alpha/2)
 
     def _adj(z):
@@ -160,7 +173,9 @@ def bootstrap_median_diff_ci(diff: np.ndarray, n_boot: int = 10000, alpha: float
     pl, pu = _adj(zl), _adj(zu)
     if not (0 < pl < pu < 1):
         pl, pu = alpha/2, 1 - alpha/2
-    return point, float(np.percentile(boot, 100*pl)), float(np.percentile(boot, 100*pu))
+        method = "percentile"       # BCa adjustment left (0,1) - fell back to percentile
+    lo, hi = float(np.percentile(boot, 100*pl)), float(np.percentile(boot, 100*pu))
+    return (point, lo, hi, method) if return_method else (point, lo, hi)
 
 
 def _significance_stars(p: float) -> str:
@@ -222,12 +237,22 @@ def paired_significance_table(
     for metric in metrics:
         a, b, n, dropped, n_a, n_b = _paired_arrays(results_a, results_b, metric)
         diff = a - b
+        # Wilcoxon zero_method="wilcox" DROPS zero-difference pairs before ranking,
+        # so the test's effective n is n - n_zero_diff; report both so an
+        # underpowered claim hiding behind a large n_pairs is visible.
+        n_zero = int(np.sum(diff == 0)) if n else 0
         row: Dict[str, object] = {"metric": metric, "n_pairs": n, "n_dropped": dropped,
+                                  "n_zero_diff": n_zero, "n_effective": int(n - n_zero),
                                   "n_roster_a": n_a, "n_roster_b": n_b}
         if n < 1 or np.all(diff == 0):
             row.update(statistic=float("nan"), p_value_raw=1.0, effect_size_r=0.0,
                        median_diff=float(np.median(diff)) if n else float("nan"),
-                       ci_low=float("nan"), ci_high=float("nan"), direction="tie")
+                       ci_low=float("nan"), ci_high=float("nan"),
+                       ci_method="undefined", direction="tie")
+            if n >= 1 and np.all(diff == 0):
+                logger.warning("metric %s: all %d paired differences are zero "
+                               "(genuine equivalence or a degenerate metric); reported tie.",
+                               metric, n)
             if n < 1:
                 logger.warning("metric %s: no paired finite cases; reported n.s.", metric)
             raw_ps.append(1.0)
@@ -244,11 +269,12 @@ def paired_significance_table(
                            "conservative p=1.0 with a compute_error flag.", metric, exc)
             stat, p = float("nan"), 1.0
             row["compute_error"] = str(exc)
-        point, lo, hi = bootstrap_median_diff_ci(diff, n_boot=n_boot, alpha=alpha, seed=seed)
+        point, lo, hi, ci_method = bootstrap_median_diff_ci(
+            diff, n_boot=n_boot, alpha=alpha, seed=seed, return_method=True)
         better = "tie" if point == 0 else ("A" if (point > 0) ^ (metric in _LOWER_IS_BETTER) else "B")
         row.update(statistic=float(stat), p_value_raw=float(p),
                    effect_size_r=rank_biserial(diff), median_diff=point,
-                   ci_low=lo, ci_high=hi, direction=better)
+                   ci_low=lo, ci_high=hi, ci_method=ci_method, direction=better)
         raw_ps.append(float(p))
         rows.append(row)
 
@@ -264,3 +290,83 @@ def wilcoxon_significance_table(results_a, results_b, alpha: float = 0.05,
     """Alias for :func:`paired_significance_table` over the default metric set."""
     return paired_significance_table(results_a, results_b, alpha=alpha,
                                      correction=correction, **kwargs)
+
+
+def noninferiority_table(
+    results_reference: Dict[str, Dict[str, float]],
+    results_candidate: Dict[str, Dict[str, float]],
+    margins: Union[float, Mapping[str, float]],
+    metrics: Sequence[str] = _DEFAULT_METRICS,
+    alpha: float = 0.05,
+    n_boot: int = 10000,
+    seed: int = 0,
+) -> List[Dict[str, object]]:
+    """Non-inferiority of a *candidate* method vs a *reference* on paired cases.
+
+    Use this - not :func:`paired_significance_table` - to back a claim that a
+    cheaper model preserves accuracy (e.g. the INT8 student vs the FP32 student,
+    or a deployed compressed model vs the full teacher). A two-sided Wilcoxon
+    that fails to reject H0 does **NOT** show equivalence ("absence of evidence is
+    not evidence of absence"); non-inferiority requires a *pre-specified margin*
+    and a confidence interval that lies inside it.
+
+    For each metric the candidate's **performance loss** is defined so that
+    *positive == candidate worse*::
+
+        higher-is-better (Dice):  loss = reference - candidate
+        lower-is-better  (HD95):  loss = candidate - reference
+
+    A BCa bootstrap ``(1 - alpha)`` CI on the **median** loss is computed
+    (reusing :func:`bootstrap_median_diff_ci`). The candidate is declared
+    NON-INFERIOR for that metric iff the **entire CI lies below the margin**
+    (``ci_high < margin``). This CI-based rule is conservative: a two-sided
+    ``(1 - alpha)`` CI entirely below the margin corresponds to a one-sided
+    non-inferiority test at level ``alpha / 2``. Pre-register the margins.
+
+    Args:
+        results_reference: ``{case_id: {metric: value}}`` for the reference (e.g. FP32).
+        results_candidate: ``{case_id: {metric: value}}`` for the candidate (e.g. INT8).
+            Cases are paired by id; only ids present in both with finite values for a
+            metric enter that metric's CI (the dropped count is reported).
+        margins: one positive margin for all metrics, or ``{metric: margin}`` in
+            metric units (e.g. ``{"dsc_et": 0.01, "hd95_et": 2.0}``). Dice margins
+            are absolute Dice points; HD95 margins are millimetres.
+        metrics: the metric family to test.
+        alpha: the CI is a two-sided ``1 - alpha`` interval (default 0.05 → 95% CI).
+        n_boot, seed: bootstrap resamples and RNG seed.
+
+    Returns:
+        One row dict per metric with keys ``metric, n_pairs, n_dropped, margin,
+        median_loss, ci_low, ci_high, non_inferior, direction`` (``direction``
+        accounts for HD95 being lower-is-better; ``median_loss`` and the CI are
+        always expressed as loss, positive == candidate worse).
+
+    Raises:
+        ValueError: if a metric's margin is missing or non-positive.
+    """
+    rows: List[Dict[str, object]] = []
+    for metric in metrics:
+        margin = margins.get(metric) if isinstance(margins, Mapping) else float(margins)
+        if margin is None or not (float(margin) > 0.0):
+            raise ValueError(
+                f"non-inferiority margin for {metric!r} must be a positive number, "
+                f"got {margin!r}.")
+        margin = float(margin)
+        a, b, n, dropped, n_a, n_b = _paired_arrays(results_reference, results_candidate, metric)
+        lower_is_better = metric in _LOWER_IS_BETTER
+        loss = (b - a) if lower_is_better else (a - b)  # positive == candidate worse
+        row: Dict[str, object] = {"metric": metric, "n_pairs": n, "n_dropped": dropped,
+                                  "n_roster_reference": n_a, "n_roster_candidate": n_b,
+                                  "margin": margin}
+        if n < 1:
+            logger.warning("non-inferiority %s: no paired finite cases; undetermined.", metric)
+            row.update(median_loss=float("nan"), ci_low=float("nan"), ci_high=float("nan"),
+                       non_inferior=False, direction="undetermined")
+            rows.append(row)
+            continue
+        point, lo, hi = bootstrap_median_diff_ci(loss, n_boot=n_boot, alpha=alpha, seed=seed)
+        non_inferior = bool(np.isfinite(hi) and hi < margin)
+        row.update(median_loss=point, ci_low=lo, ci_high=hi, non_inferior=non_inferior,
+                   direction=("non_inferior" if non_inferior else "inconclusive_or_inferior"))
+        rows.append(row)
+    return rows

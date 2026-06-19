@@ -1,7 +1,7 @@
 """Regression tests for the dataset-informed + verified-finding fixes (audit).
 
 Covers behaviours that previously had no test and that this audit changed:
-  * SAGER sex-breakdown robustness — missing-value sentinels (incl. the Erasmus
+  * SAGER sex-breakdown robustness - missing-value sentinels (incl. the Erasmus
     `-1`), the no-sex-column case (BraTS-Africa), and empty CSVs;
   * `_apply_label_remap` malformed-JSON guard (warn + pass through, never raise);
   * `save_torch_atomic` write + tmp-cleanup contract;

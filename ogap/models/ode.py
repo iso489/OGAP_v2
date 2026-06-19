@@ -3,7 +3,7 @@
 Motivation
 ----------
 OGAP distils a heavy *teacher* into a cheap INT8 *student*. The teacher is never
-exported, so its only cost is training-time GPU memory — exactly the bottleneck
+exported, so its only cost is training-time GPU memory - exactly the bottleneck
 the Neural ODE paper removes. Chen et al. (NeurIPS 2018, §2) show that an
 ODE-defined hidden state can be back-propagated with the **adjoint sensitivity
 method at O(1) memory** regardless of effective depth. So we can give the
@@ -45,7 +45,7 @@ class ConvODEFunc3D(nn.Module):
     exported, so it can afford a full conv here; the *student* ODE field
     ``_StudentODEFunc3D`` is the depthwise-separable, INT8-friendly counterpart.)
 
-    ``nfe`` counts function evaluations per solve — the continuous-depth analogue
+    ``nfe`` counts function evaluations per solve - the continuous-depth analogue
     of "number of layers" (paper Fig. 3d).
     """
 
@@ -76,7 +76,7 @@ class ConvODEFunc3D(nn.Module):
 
 
 class ODEBlock3D(nn.Module):
-    """Integrate learned dynamics from t=0 to t=1 — a continuous residual block.
+    """Integrate learned dynamics from t=0 to t=1 - a continuous residual block.
 
     A fixed-step Euler solve of this block is *exactly* a weight-tied residual
     network of depth ``steps``; an adaptive solve adapts depth per input. Either

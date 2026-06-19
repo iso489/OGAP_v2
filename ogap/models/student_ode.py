@@ -1,4 +1,4 @@
-"""Weight-tied ODE student block — train continuous, deploy discrete (INT8).
+"""Weight-tied ODE student block - train continuous, deploy discrete (INT8).
 
 The deployable OGAP student must (a) be tiny, (b) quantise to INT8, and (c)
 export to a *static* ONNX graph at a *predictable* latency. A naive Neural ODE
@@ -13,10 +13,10 @@ So we can:
 * **Train** with continuous-depth semantics (optionally an adaptive solver via
   the shared :mod:`ogap.numerics` backend) for the regularisation / expressivity
   benefit, and
-* **Deploy** the *unrolled Euler* form — a plain ``for`` loop of ``N`` shared-
+* **Deploy** the *unrolled Euler* form - a plain ``for`` loop of ``N`` shared-
   weight residual updates. That graph is static, ONNX-traceable, and INT8-
   quantisable, yet its parameter count is that of **one** block regardless of
-  ``N``. More effective depth, no extra weights — friendly to weak hardware.
+  ``N``. More effective depth, no extra weights - friendly to weak hardware.
 
 ``WeightTiedODEBlock3D`` is a drop-in replacement for ``ResConvBlock3D``
 (``in_ch, out_ch`` constructor, ``set_epoch`` no-op-compatible). Use
@@ -86,7 +86,7 @@ class WeightTiedODEBlock3D(nn.Module):
             import logging
             logging.getLogger(__name__).warning(
                 "WeightTiedODEBlock3D(deploy_mode='solver') integrates with RK4, but "
-                "the export path uses an explicit Euler unroll — a model trained in "
+                "the export path uses an explicit Euler unroll - a model trained in "
                 "'solver' mode is a DIFFERENT function from its exported 'euler_unrolled' "
                 "form. Use the default 'euler_unrolled' for an export-consistent "
                 "(train==deploy) student. [audit S3-B]"

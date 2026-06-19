@@ -1,6 +1,6 @@
 """OGAP architecture search space.
 
-The v9 monolith already encodes a *manual* macro search space — the ablation
+The v9 monolith already encodes a *manual* macro search space - the ablation
 runner sweeps ``attention ∈ {none, eca, se}``, ``block_style ∈ {mednext,
 dense}``, deep-supervision on/off and base width. This module promotes that
 implicit space to an explicit, sampled/enumerable :class:`ArchConfig`, which is
@@ -27,7 +27,7 @@ ATTENTIONS: Tuple[str, ...] = ("none", "eca", "se")
 BLOCK_STYLES: Tuple[str, ...] = ("mednext", "weight_tied_ode")
 DEEP_SUPERVISION: Tuple[bool, ...] = (True, False)
 FEATURE_DR: Tuple[str, ...] = ("none", "mixstyle", "dsu")
-# Effective bottleneck depth — for weight_tied_ode blocks this is the number of
+# Effective bottleneck depth - for weight_tied_ode blocks this is the number of
 # Euler steps and costs ZERO extra parameters (see ogap.models.student_ode).
 BOTTLENECK_DEPTHS: Tuple[int, ...] = (2, 4, 6, 8)
 

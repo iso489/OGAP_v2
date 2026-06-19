@@ -35,8 +35,8 @@ def _deep_merge(base: Dict[str, Any], over: Dict[str, Any], path: str = "") -> D
         base_is_dict = isinstance(base[key], dict)
         val_is_dict = isinstance(val, dict)
         # A dict-valued default replaced by a non-null SCALAR silently discards the
-        # whole sub-tree — e.g. `compile: true` over `compile: {enabled: ..., mode: ...}`
-        # — and only surfaces as an AttributeError deep in training. Reject that. An
+        # whole sub-tree - e.g. `compile: true` over `compile: {enabled: ..., mode: ...}`
+        # - and only surfaces as an AttributeError deep in training. Reject that. An
         # explicit `null`/None is allowed as the "disable this block" idiom (the config
         # readers treat a None node as absent and fall back to defaults).
         if base_is_dict and val is not None and not val_is_dict:

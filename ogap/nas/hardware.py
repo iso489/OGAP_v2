@@ -1,4 +1,4 @@
-"""Hardware cost model — the second objective for OGAP's constrained NAS.
+"""Hardware cost model - the second objective for OGAP's constrained NAS.
 
 OGAP's mission is LMIC deployment, so accuracy alone is the wrong objective. The
 survey's constrained-NAS section (White et al. 2023, §6.2) optimises accuracy

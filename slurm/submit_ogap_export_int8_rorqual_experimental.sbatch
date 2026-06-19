@@ -134,12 +134,12 @@ try:
             "rerun setup/setup_ogap_env_v2.sh"
         )
     assert torch.cuda.is_available(), (
-        "torch.cuda.is_available() is False — CUDA driver not found or GPU not allocated"
+        "torch.cuda.is_available() is False - CUDA driver not found or GPU not allocated"
     )
     import onnx
     import onnxruntime as ort
     print(
-        f"[preflight] OK — torch={torch.__version__} cuda={torch.version.cuda} "
+        f"[preflight] OK - torch={torch.__version__} cuda={torch.version.cuda} "
         f"gpu={torch.cuda.get_device_name(0)} onnx={onnx.__version__} "
         f"ort={ort.__version__} providers={ort.get_available_providers()}"
     )
@@ -163,7 +163,7 @@ done
 if [[ "${RUN_COMPARE}" == "1" && ! -e "${COMPARE_VAL_CSV}" ]]; then
   echo "[ERROR][export] COMPARE_VAL_CSV not found: ${COMPARE_VAL_CSV}" >&2
   if [[ "${COMPARE_VAL_CSV}" == *"/UTSW-"* && -d "${COMPARE_VAL_CSV%/UTSW-*}/USTW-glioma" ]]; then
-    echo "        hint: '${COMPARE_VAL_CSV%/UTSW-*}/USTW-glioma' exists — rename to UTSW-glioma." >&2
+    echo "        hint: '${COMPARE_VAL_CSV%/UTSW-*}/USTW-glioma' exists - rename to UTSW-glioma." >&2
   fi
   exit 1
 fi

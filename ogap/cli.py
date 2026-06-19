@@ -9,7 +9,7 @@ identical.
 On top of that, this CLI adds the new, additive capabilities that live in the
 clean subpackages. Currently:
 
-* ``nas-search`` — run the hardware-aware multi-objective architecture search
+* ``nas-search`` - run the hardware-aware multi-objective architecture search
   (:mod:`ogap.nas`) and write the Pareto front to JSON.
 
 The new commands are namespaced with a hyphen so they can never collide with a
@@ -113,6 +113,11 @@ def _cmd_nas_search(argv: List[str]) -> int:
     p.add_argument("--n", type=int, default=16, help="candidates (random) / iterations (evolution).")
     p.add_argument("--proxy", default="jacob_cov",
                    choices=["jacob_cov", "synflow", "snip", "grad_norm", "param_count", "diswot"])
+    p.add_argument("--proxy-batch", type=int, default=16,
+                   help="Batch size for the ACCURACY PROXY only (cost stays B=1). "
+                        "jacob_cov/NASWOT needs B>1 - a 1x1 Jacobian correlation matrix "
+                        "is the constant [[1]], so B=1 makes the proxy non-discriminative "
+                        "(returns ~-1.0 for every architecture). 16-32 is a good 3D compromise.")
     p.add_argument("--teacher-arch", default=None,
                    choices=["unet3d", "segmamba", "swin_unetr", "ode"],
                    help="Build a random-initialized teacher for teacher-aware DisWOT scoring.")
@@ -140,7 +145,8 @@ def _cmd_nas_search(argv: List[str]) -> int:
 
     cfg = SearchConfig(
         in_channels=args.in_channels, num_classes=args.num_classes,
-        input_shape=(1, args.in_channels, d, h, w),
+        input_shape=(1, args.in_channels, d, h, w),   # cost batch B=1 (single-volume)
+        proxy_batch=args.proxy_batch,                  # accuracy-proxy batch (jacob_cov needs >1)
         proxy_key=args.proxy, seed=args.seed,
         teacher_model=teacher,
         budget=Budget(max_int8_mb=args.max_int8_mb, max_latency_ms=args.max_latency_ms),
@@ -179,7 +185,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if argv and argv[0] in NEW_COMMANDS:
         if argv[0] == "nas-search":
             return _cmd_nas_search(argv[1:])
-    # Everything else is a legacy command — delegate verbatim.
+    # Everything else is a legacy command - delegate verbatim.
     from . import legacy
     legacy.main()
     return 0

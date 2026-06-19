@@ -6,7 +6,7 @@ quarters of a node's compute idle per run. This module is the missing
 DistributedDataParallel layer: launched with ``torchrun --nproc_per_node=4`` (or
 the matching SLURM ``srun``), it replicates the model across the 4 GPUs, shards
 the data with a :class:`~torch.utils.data.distributed.DistributedSampler`, and
-synchronises gradients over NVLink — ~4x throughput for the teacher / student /
+synchronises gradients over NVLink - ~4x throughput for the teacher / student /
 ablation sweep with the NCCL ``NVL`` P2P level the launch scripts already set.
 
 Every function degrades gracefully to a no-op when run as a single process
@@ -74,7 +74,7 @@ def init_distributed_from_env(prefer_backend: Optional[str] = None) -> DistInfo:
 
     Reads ``WORLD_SIZE`` / ``RANK`` / ``LOCAL_RANK`` (set by ``torchrun`` and by
     the SLURM launch script). When ``WORLD_SIZE <= 1`` this is a no-op and returns
-    a single-process :class:`DistInfo` — so the historical single-GPU path is
+    a single-process :class:`DistInfo` - so the historical single-GPU path is
     untouched. On CUDA it uses NCCL (NVLink) and pins the process to its
     ``LOCAL_RANK`` GPU; otherwise gloo.
     """
@@ -111,7 +111,7 @@ def wrap_ddp(model: torch.nn.Module, device: torch.device,
 
     ``find_unused_parameters`` defaults False (faster); set True only if some
     parameters (e.g. an optional auxiliary head not always used in a forward)
-    receive no gradient — DDP raises otherwise.
+    receive no gradient - DDP raises otherwise.
     """
     if not is_dist_available_and_initialized():
         return model
@@ -229,7 +229,7 @@ def all_reduce_dict(metrics: Dict[str, float]) -> Dict[str, float]:
 
 @contextmanager
 def main_process_first():
-    """Run the body on rank 0 first, then the others — for one-time setup such as
+    """Run the body on rank 0 first, then the others - for one-time setup such as
     cache priming that must not race across ranks."""
     if is_dist_available_and_initialized() and not is_main_process():
         torch.distributed.barrier()

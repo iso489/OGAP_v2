@@ -5,15 +5,16 @@ only a subset of the four MRI modalities is available, and does that degradation
 differ between models (e.g. teacher vs. full-precision student vs. INT8 student)?
 
 Pipeline:
-1. :func:`evaluate_modality_combinations` masks each of the 11 modality subsets
+1. :func:`evaluate_modality_combinations` masks each of the 15 modality subsets
    and evaluates a model per case, reusing
    :func:`ogap.evaluation.brats_metrics.compute_brats_metrics`.
 2. :func:`modality_robustness_table` aggregates mean/std per model x combo x metric.
 3. :func:`friedman_test` / :func:`multimodel_significance_matrix` /
    :func:`full_significance_sweep` provide the omnibus + post-hoc paired tests.
 4. :func:`modality_degradation_analysis` quantifies the degradation curve.
-5. :func:`quantize_student_int8` builds the CPU INT8 model used as one of the
-   compared models.
+5. :func:`quantize_student_int8` is a CPU INT8 *proxy* (Linear heads only,
+   strict-by-default - it refuses conv-heavy students); the real INT8 conv model
+   for published comparisons is the ONNX/onnxruntime export.
 
 Channel order follows the project convention; verify against the data loader
 before use. ``compute_brats_metrics`` may emit ``np.nan`` HD95 when a subregion
@@ -34,12 +35,16 @@ from .stats import benjamini_hochberg, holm_correction, rank_biserial
 
 logger = logging.getLogger(__name__)
 
-# BraTS standard channel order — verify against the data loader's mapping.
+# BraTS standard channel order - verify against the data loader's mapping.
 MODALITY_CHANNELS: Dict[str, int] = {"T1": 0, "T1ce": 1, "T2": 2, "FLAIR": 3}
 CHANNEL_NAMES: Dict[int, str] = {v: k for k, v in MODALITY_CHANNELS.items()}
 
-# All 11 modality subsets: C(4,2)=6 + C(4,3)=4 + C(4,4)=1.
+# All 15 non-empty modality subsets: C(4,1)=4 + C(4,2)=6 + C(4,3)=4 + C(4,4)=1.
+# The four single-modality cases are realistic LMIC acquisitions (a site with
+# only T1, or only FLAIR) and the hardest missing-modality stress test, so they
+# are part of the sweep - not dropped.
 ALL_COMBINATIONS: List[FrozenSet[int]] = [
+    frozenset({0}), frozenset({1}), frozenset({2}), frozenset({3}),
     frozenset({0, 1}), frozenset({0, 2}), frozenset({0, 3}),
     frozenset({1, 2}), frozenset({1, 3}), frozenset({2, 3}),
     frozenset({0, 1, 2}), frozenset({0, 1, 3}),
@@ -104,27 +109,39 @@ def evaluate_modality_combinations(
     Args:
         model: callable mapping ``(B, C, D, H, W)`` -> logits (or a tuple whose
             first element is logits).
-        dataloader: yields ``(volume, label)`` with ``volume`` shape
-            ``(B, 4, D, H, W)`` and integer ``label`` ``(B, D, H, W)``.
+        dataloader: yields ``(volume, label)`` or ``(volume, label, case_ids)``
+            with ``volume`` shape ``(B, 4, D, H, W)`` and integer ``label``
+            ``(B, D, H, W)``; ``case_ids`` (length B) become the result keys.
         device: torch device string.
         fill: missing-channel strategy (see :func:`apply_modality_mask`).
         voxel_spacing_mm: passed to :func:`compute_brats_metrics` for HD95.
         hd95_empty_policy: "nan" (default; absent subregions drop from aggregation) or
-            "penalty" (BraTS-leaderboard convention — substitute the penalty distance so
+            "penalty" (BraTS-leaderboard convention - substitute the penalty distance so
             missed ET/TC regions are penalised, not silently dropped). "penalty" is
             recommended for the degradation study, where absent regions are the signal.
 
     Returns:
-        ``{combo_label: {case_id: {metric: value}}}``. ``case_id`` is assigned in
-        iteration order as ``case_{index:04d}``.
+        ``{combo_label: {case_id: {metric: value}}}``. If the dataloader yields a
+        3-tuple ``(volume, label, case_ids)`` those real ids key the results (so
+        they can be joined to per-case metadata); otherwise ``case_id`` is
+        assigned in iteration order as ``case_{index:04d}``.
     """
     model = model.to(device).eval()
     results: Dict[str, Dict[str, dict]] = {combo_label(c): {} for c in ALL_COMBINATIONS}
     case_idx = 0
-    for volume, label in dataloader:
+    for batch in dataloader:
+        # Accept (volume, label) or (volume, label, case_ids). Real case ids let
+        # the robustness table be joined to per-case metadata (field strength /
+        # cohort) for the LMIC-vs-HIC disparity analysis; a 2-tuple loader falls
+        # back to positional case_{idx} ids.
+        if len(batch) == 3:
+            volume, label, case_ids = batch
+            batch_ids = [str(c) for c in case_ids]
+        else:
+            volume, label = batch
+            batch_ids = [f"case_{case_idx + i:04d}" for i in range(volume.shape[0])]
         volume = volume.to(device)
         label = label.to(device)
-        batch_ids = [f"case_{case_idx + i:04d}" for i in range(volume.shape[0])]
         case_idx += volume.shape[0]
         for combo in ALL_COMBINATIONS:
             masked = apply_modality_mask(volume, combo, fill=fill)
@@ -179,7 +196,9 @@ def modality_robustness_table(
                 vals = [v.get(metric) for v in results_per_model[model].get(lbl, {}).values()]
                 arr = np.array([x for x in vals if x is not None and np.isfinite(x)], dtype=float)
                 row[(f"{metric}_mean", model)] = float(arr.mean()) if arr.size else float("nan")
-                row[(f"{metric}_std", model)] = float(arr.std(ddof=0)) if arr.size else float("nan")
+                # Sample std (ddof=1), NaN for n<2 - population std (ddof=0) returns
+                # 0.0 for a single case, which reads as "zero variability", not "n=1".
+                row[(f"{metric}_std", model)] = float(arr.std(ddof=1)) if arr.size >= 2 else float("nan")
         data[lbl] = row
     df = pd.DataFrame.from_dict(data, orient="index")
     df = df.reindex(columns=pd.MultiIndex.from_tuples(col_tuples))
@@ -382,7 +401,7 @@ def modality_degradation_analysis(
 
     Args:
         results_per_model: output of :func:`evaluate_modality_combinations` per model.
-        metric: metric to analyse (default ET Dice — the most sensitive region).
+        metric: metric to analyse (default ET Dice - the most sensitive region).
 
     Returns:
         A pandas DataFrame with columns ``model, n_modalities, combo_label,
@@ -422,7 +441,7 @@ def modality_degradation_analysis(
     df = pd.DataFrame(rows)
     pairs = list(itertools.combinations(models, 2))
     # Pairwise model comparison at each n-level on PER-CASE paired values, POOLED across
-    # the combos at that level — not per-combination MEANS. The means version used the
+    # the combos at that level - not per-combination MEANS. The means version used the
     # number of combinations as the sample size (6/4/1), which conflates between-combo
     # variance for within-method case variance and degenerates to a single observation
     # (scipy returns p=1.0) at the 4-modality level. _aligned_values pairs cases finite
@@ -458,24 +477,26 @@ def modality_degradation_analysis(
     return df
 
 
-def quantize_student_int8(student_model: nn.Module, strict: bool = False) -> nn.Module:
-    """Dynamic INT8 quantization for CPU-side testing — Linear/RNN layers only.
+def quantize_student_int8(student_model: nn.Module, strict: bool = True) -> nn.Module:
+    """Dynamic INT8 quantization for CPU-side testing - Linear/RNN layers only.
 
     IMPORTANT: ``torch.quantization.quantize_dynamic`` only has dynamic INT8
     implementations for ``Linear`` (and the RNN family); **3D convolutions are NOT
     dynamically quantizable**. For OGAP's conv-heavy student this therefore
     quantizes essentially nothing beyond the small ``Linear`` heads (e.g. the RANO
-    head) — it is a coarse CPU *proxy*, NOT a faithful INT8 conv model. The real
+    head) - it is a coarse CPU *proxy*, NOT a faithful INT8 conv model. The real
     deployment INT8 path (with quantized convolutions) is the ONNX export +
     onnxruntime/OpenVINO pipeline; use THAT for any INT8-vs-FP32 number that backs
     a published claim. The original model is not modified.
 
     Args:
         student_model: the model to (proxy-)quantize.
-        strict: if True, **raise** when the model contains convolutions instead of
-            merely warning. Set this on any path that produces numbers for the
-            paper, so a conv-heavy student can never be reported as "INT8" from
-            this proxy — the ONNX/onnxruntime export must be used instead. [C1]
+        strict: **default True** - *raise* when the model contains convolutions
+            instead of returning a misleading FP32 proxy. Safe-by-default so a
+            conv-heavy student can never be reported as "INT8" from this proxy;
+            the real INT8 conv model is the ONNX/onnxruntime export. Pass
+            ``strict=False`` only for a quick CPU smoke-test of the Linear heads,
+            never for a number that backs a published claim. [C1]
 
     Raises:
         RuntimeError: if dynamic quantization / a backend engine is unavailable, or
@@ -502,7 +523,7 @@ def quantize_student_int8(student_model: nn.Module, strict: bool = False) -> nn.
     if any(isinstance(m, (nn.Conv1d, nn.Conv2d, nn.Conv3d))
            for m in student_model.modules()):
         msg = ("quantize_student_int8: dynamic quantization does not quantize conv "
-               "layers, so the returned model keeps FP32 convolutions — a CPU proxy "
+               "layers, so the returned model keeps FP32 convolutions - a CPU proxy "
                "only. Use the ONNX/onnxruntime path for a true INT8 conv model.")
         if strict:
             raise RuntimeError(

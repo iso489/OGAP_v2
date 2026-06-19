@@ -6,13 +6,13 @@ green/red status line for each. Optional dependencies that are missing
 yield a yellow warning (the corresponding subcommand will simply be
 disabled at runtime); they do not cause this script to fail.
 
-Run on Rorqual after ``setup_ogap_env_v2.sh``:
+Run on Trillium after ``setup_ogap_env_v2.sh``:
 
     python verify_ogap_env.py
 
 Exit codes:
-    0 — all REQUIRED packages importable.
-    1 — at least one required import failed.
+    0 - all REQUIRED packages importable.
+    1 - at least one required import failed.
 """
 
 from __future__ import annotations
@@ -102,7 +102,7 @@ def _try_import(name: str) -> Tuple[bool, str]:
 
 
 def main() -> int:
-    print(f"{DIM}OGAP v2 environment verification — Python "
+    print(f"{DIM}OGAP v2 environment verification - Python "
           f"{sys.version.split()[0]} on {sys.platform}{RESET}")
     print()
 
@@ -126,12 +126,12 @@ def main() -> int:
         elif ok and required:
             color = RED
             mark = CROSS
-            tail = f"{info} — {problem}"
+            tail = f"{info} - {problem}"
             fail_required += 1
         elif ok:
             color = YELLOW
             mark = WARN
-            tail = f"{info} — {problem}"
+            tail = f"{info} - {problem}"
             miss_optional += 1
             missing_features.append(feature)
         elif required:
@@ -142,7 +142,7 @@ def main() -> int:
         else:
             color = YELLOW
             mark = WARN
-            tail = f"missing — disables: {feature}"
+            tail = f"missing - disables: {feature}"
             miss_optional += 1
             missing_features.append(feature)
 
@@ -166,7 +166,7 @@ def main() -> int:
                       f"{DIM}unavailable; AMP runs will use fp16{RESET}")
         else:
             print(f"  {YELLOW}{WARN}{RESET} torch.cuda                        "
-                  f"{DIM}unavailable — env still works on CPU{RESET}")
+                  f"{DIM}unavailable - env still works on CPU{RESET}")
     except Exception as exc:  # noqa: BLE001
         print(f"  {RED}{CROSS}{RESET} torch.cuda check                  {exc}")
 
@@ -213,7 +213,7 @@ def main() -> int:
             fail_required += 1
     else:
         print(f"  {YELLOW}{WARN}{RESET} OGAP_source_code_experimental_v9  "
-              f"{DIM}not found next to verify_ogap_env.py — skipped{RESET}")
+              f"{DIM}not found next to verify_ogap_env.py - skipped{RESET}")
 
     # ── Summary ─────────────────────────────────────────────────────────
     print()
@@ -226,9 +226,9 @@ def main() -> int:
             print(f"    {YELLOW}{WARN}{RESET} {feat}")
     print()
     if fail_required:
-        print(f"{RED}FAIL — at least one required package is missing.{RESET}")
+        print(f"{RED}FAIL - at least one required package is missing.{RESET}")
         return 1
-    print(f"{GREEN}OK — environment ready for OGAP v2 training and evaluation.{RESET}")
+    print(f"{GREEN}OK - environment ready for OGAP v2 training and evaluation.{RESET}")
     return 0
 
 

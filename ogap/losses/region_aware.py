@@ -74,7 +74,7 @@ class RegionWeightedGDL(nn.Module):
     def update_weights(self, dice_by_region: Dict[str, float], eps: float = 1e-3) -> None:
         """Dynamic region weighting: ``w_r = 1 / (Dice_r + eps)``.
 
-        Optional contract for the training loop — call after a validation pass to
+        Optional contract for the training loop - call after a validation pass to
         up-weight under-performing regions. Unknown regions are ignored.
         """
         for region, dice in dice_by_region.items():
@@ -99,7 +99,7 @@ class RegionWeightedGDL(nn.Module):
                     # regions by exponentiating the (1 - overlap) term. The previous
                     # code instead shrank ``pred`` by (1-pred)**gamma INSIDE the Dice,
                     # which drove a confident-correct region's Dice toward 0 (loss -> 1)
-                    # and pushed foreground probabilities DOWN — the opposite of focal.
+                    # and pushed foreground probabilities DOWN - the opposite of focal.
                     gamma = self.focal_gamma.get(region, 1.0)
                     region_loss = region_loss ** gamma
                 total = total + weight * region_loss
@@ -116,7 +116,7 @@ class RegionSigmoidBatchDiceLoss(nn.Module):
     deployed head still emits 4-class logits (checkpoint-frozen), so for each region R
     with class set C_R the equivalent binary logit is the exact
 
-        logit P(R) = logsumexp(z_{C_R}) − logsumexp(z_{complement})
+        logit P(R) = logsumexp(z_{C_R}) - logsumexp(z_{complement})
 
     (so ``sigmoid(logit_R) = P(R) = Σ_{c∈C_R} softmax(z)_c``). The loss is then
     ``BCEWithLogits`` per region + **batch** soft Dice (summed over batch *and* spatial,

@@ -1,7 +1,7 @@
-# OGAP v9.1 BASELINE profile — the VALIDATED default path. [audit S1-A/B]
+# OGAP v9.1 BASELINE profile - the VALIDATED default path. [audit S1-A/B]
 #
 # This is what launch_pipeline.py runs by default: the historically-exercised,
-# checkpoint-compatible path —
+# checkpoint-compatible path -
 #   * conv UNet3D teacher + residual ("res") student,
 #   * legacy Dice+CE task loss and the legacy Hölder-divergence KD (the v9.1
 #     region/composite task loss + ODE-aware KD assembly activate ONLY when
@@ -13,7 +13,7 @@
 # KD, tissue priors, domain-adversarial, k-space/AFA augmentation) lives in
 # production_v91.yaml. Turn those on ONE ablation rung at a time using
 # experiments/ablation_configs/ and only promote to production once each rung is
-# benchmarked on the cluster — production_v91.yaml is the end state of a passed
+# benchmarked on the cluster - production_v91.yaml is the end state of a passed
 # ablation, not the starting point.
 
 loss:

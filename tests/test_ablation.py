@@ -2,7 +2,7 @@
 the variant-vs-baseline results table.
 
 Exercises the 8 experiments/ablation_configs overlays (full + 7 single-component
-ablations). No GPU/data needed — these test the bookkeeping, not training.
+ablations). No GPU/data needed - these test the bookkeeping, not training.
 """
 import os
 

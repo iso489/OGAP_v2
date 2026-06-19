@@ -6,7 +6,7 @@ is friction; more importantly, the *deployable* student must export to a static
 graph, which adaptive solvers preclude. So the default solvers here are
 **fixed-step** (Euler / midpoint / RK4): the number of function evaluations is a
 known constant, the unrolled graph is static, and a fixed-step Euler solve is
-*exactly* a weight-tied residual network — which is what lets us train
+*exactly* a weight-tied residual network - which is what lets us train
 continuous-depth and deploy a discrete, INT8-friendly model (see
 :mod:`ogap.models.student_ode`).
 
@@ -57,7 +57,7 @@ class ODESolverConfig:
     steps:
         Number of fixed integration steps between consecutive entries of ``t``.
         Ignored for adaptive methods. ``steps`` is the lever that trades compute
-        for accuracy at *fixed, predictable* cost — the LMIC-deployment-friendly
+        for accuracy at *fixed, predictable* cost - the LMIC-deployment-friendly
         analogue of the paper's adaptive "reduce accuracy for low power".
     adjoint:
         If True, use ``torchdiffeq.odeint_adjoint`` for constant-memory
@@ -175,7 +175,7 @@ def integrate(func: ODEFunc, y0: Tensor, *,
     """Convenience: return only the final state of an ODE block solve.
 
     This is the workhorse used by :class:`ogap.models.ode.ODEBlock3D` to replace
-    a residual block — integrate the learned dynamics from ``t0`` to ``t1`` and
+    a residual block - integrate the learned dynamics from ``t0`` to ``t1`` and
     return ``y(t1)``.
     """
     if config is None:

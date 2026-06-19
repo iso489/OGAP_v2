@@ -87,7 +87,7 @@ def test_fixed_intensity_augmentations_preserve_background_on_real_case(case):
     fg = x != 0
     # A low SNR forces rician_noise to actually inject noise (at high SNR the [S2-A]
     # quadrature rule correctly no-ops because the z-scored input already exceeds the
-    # target SNR — you cannot raise SNR by adding noise).
+    # target SNR - you cannot raise SNR by adding noise).
     outputs = {
         "rician_noise": rician_noise(x, torch.Generator().manual_seed(0), (0.8, 1.5)),
         "intensity_shift": random_intensity_shift(x, torch.Generator().manual_seed(0)),

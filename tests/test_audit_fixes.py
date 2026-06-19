@@ -2,19 +2,19 @@
 
 Each test encodes the *correct* behaviour and fails on the pre-fix code:
 
-* A  — AFA augmentation must perturb by a meaningful fraction of the intensity
+* A  - AFA augmentation must perturb by a meaningful fraction of the intensity
        range, not ~1/sqrt(N) (whole-volume L2 normalisation made it a no-op).
-* B1 — build_synth_generator must honour an explicit 0.0 ablation value
+* B1 - build_synth_generator must honour an explicit 0.0 ablation value
        (the ``x or default`` short-circuit silently restored the default).
-* B2 — build_model_ema must honour an explicit decay=0.0.
-* C  — _deep_merge must reject replacing a dict subtree with a scalar.
-* D2 — modality_degradation_analysis must not KeyError when models evaluated
+* B2 - build_model_ema must honour an explicit decay=0.0.
+* C  - _deep_merge must reject replacing a dict subtree with a scalar.
+* D2 - modality_degradation_analysis must not KeyError when models evaluated
        different modality combinations.
-* E  — the latent-ODE recognition net must pair each (reverse-time) step with
+* E  - the latent-ODE recognition net must pair each (reverse-time) step with
        the gap to the *previously processed* observation (backward gaps).
-* BG — rician_noise / random_intensity_shift / random_gamma must preserve the
+* BG - rician_noise / random_intensity_shift / random_gamma must preserve the
        skull-stripped zero background (the ``x != 0`` deployment invariant).
-* Gd — enhancing-tumour T1 shortening must follow the SBM relaxivity model
+* Gd - enhancing-tumour T1 shortening must follow the SBM relaxivity model
        (1/T1_post = 1/T1_pre + r1*[Gd]), not a fixed multiplier.
 """
 from __future__ import annotations
@@ -167,7 +167,7 @@ def test_rician_noise_preserves_zero_background():
 
 def test_rician_noise_injects_noise_on_zscored_data():
     # The signal level for the SNR target must be the mean MAGNITUDE of the
-    # foreground, not |mean| (~0 on z-scored / mean-centred data) — otherwise
+    # foreground, not |mean| (~0 on z-scored / mean-centred data) - otherwise
     # rician_noise injects ~nothing on the real (z-scored) pipeline inputs. Use a
     # SMOOTH, mean-centred volume (low intrinsic noise, like z-scored anatomy) so
     # the target sigma can exceed the small existing sigma and noise is injected.

@@ -1,10 +1,10 @@
 """OGAP conv building blocks (attention, residual, MedNeXt, MixStyle).
 
-EXTRACTED VERBATIM from the original v9 monolith — now ``ogap/legacy.py``; the
-top-level ``OGAP_source_code_experimental_v9.py`` is a thin shim — by the
+EXTRACTED VERBATIM from the original v9 monolith - now ``ogap/legacy.py``; the
+top-level ``OGAP_source_code_experimental_v9.py`` is a thin shim - by the
 v9.1 strangler-fig refactor. Class bodies are byte-identical to the monolith so
 existing state_dict checkpoints load without remapping. Do not "improve" these
-classes here without a matching note in the legacy shim — checkpoint compat
+classes here without a matching note in the legacy shim - checkpoint compat
 depends on attribute names and submodule order staying fixed.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ import torch.nn.functional as F
 
 
 class ECABlock3D(nn.Module):
-    """Efficient Channel Attention — quantisation-friendly replacement for SE.
+    """Efficient Channel Attention - quantisation-friendly replacement for SE.
 
     Uses 1D convolution to learn inter-channel dependencies with
     near-zero parameter overhead (~5-7 params per block vs ~8K for SE).
@@ -81,7 +81,7 @@ class CurriculumDropout3D(nn.Module):
     regularisation: easy learning first, then progressive challenge.
 
     Uses Dropout3d (spatial dropout) which drops entire feature map
-    channels — more effective than element-wise dropout for CNNs.
+    channels - more effective than element-wise dropout for CNNs.
 
     Ref: Morerio et al., "Curriculum Dropout" ICCV 2017 (arXiv:1703.06229)
          Li et al., "Disharmony Between Dropout and BN" CVPR 2019
@@ -244,7 +244,7 @@ class LargeKernelConvBlock3D(nn.Module):
     """MedNeXt-faithful 3D block with a LARGE depthwise kernel (default 5×5×5).
 
     The original ``ResConvBlock3D`` uses a 3×3×3 depthwise kernel, which discards
-    MedNeXt's defining ingredient — the large depthwise kernel that gives a wide
+    MedNeXt's defining ingredient - the large depthwise kernel that gives a wide
     receptive field (MedNeXt uses 5³/7³). That wide context matters most exactly
     where low-field segmentation is hard: blurry, low-contrast boundaries that need
     surrounding context to localise. This is the depthwise → GN → GELU → 1×1 expand
@@ -313,7 +313,7 @@ def _teacher_block_class(block_style: str) -> type:
     "mednext_large" → LargeKernelConvBlock3D (5³ depthwise + 4× inverted bottleneck;
                       wide receptive field for blurry low-field boundaries).
 
-    Student always uses ResConvBlock3D regardless of this setting — only
+    Student always uses ResConvBlock3D regardless of this setting - only
     the teacher's capacity is configurable, since only the student is
     exported to INT8.
     """
@@ -338,10 +338,10 @@ class MixStyle3D(nn.Module):
     its own and a permuted batchmate's. At eval time it is a no-op identity.
 
     Two modes (controlled by ``mode``):
-      * ``"mixstyle"`` — Zhou et al., "Domain Generalization with MixStyle",
+      * ``"mixstyle"`` - Zhou et al., "Domain Generalization with MixStyle",
         ICLR 2021. Sample λ ∼ Beta(α, α) and mix with a permuted batchmate.
         Recommended default for cross-site segmentation.
-      * ``"dsu"`` — Li et al., "Uncertainty Modeling for Out-of-Distribution
+      * ``"dsu"`` - Li et al., "Uncertainty Modeling for Out-of-Distribution
         Generalization in Visual Recognition" (DSU), ICLR 2022. Sample
         per-instance perturbed (μ, σ) from a Gaussian fitted to the
         within-batch (μ, σ) distribution. Slightly stronger; needs ≥4 batch.

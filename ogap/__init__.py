@@ -1,4 +1,4 @@
-"""OGAP — Open Glioma Analysis Pipeline (package).
+"""OGAP - Open Glioma Analysis Pipeline (package).
 
 This package is the de-monolithed home of the OGAP v9 codebase. It was created
 by a strangler-fig refactor of ``OGAP_source_code_experimental_v9.py``: the

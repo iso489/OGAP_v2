@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""OGAP v9 — Open Glioma Analysis Pipeline (core).
+"""OGAP v9 - Open Glioma Analysis Pipeline (core).
 
 Pipeline diagram
 ────────────────
@@ -114,7 +114,7 @@ class EnergyTracker:
         report = tracker.stop()   # blocks briefly, saves JSON, logs summary
     """
 
-    # Quebec grid default — change if running elsewhere.
+    # Quebec grid default - change if running elsewhere.
     DEFAULT_CARBON_INTENSITY_gCO2_PER_KWH = 26.0
 
     def __init__(
@@ -174,7 +174,7 @@ class EnergyTracker:
                 self._gpu_available = True
                 gpu_name = pynvml.nvmlDeviceGetName(self._handle)
                 gpu_name = gpu_name.decode() if isinstance(gpu_name, bytes) else gpu_name
-                LOG.info(f"[Energy/{label}] pynvml OK — tracking GPU {gpu_index}: {gpu_name}")
+                LOG.info(f"[Energy/{label}] pynvml OK - tracking GPU {gpu_index}: {gpu_name}")
             except Exception as e:
                 if self._nvml_registered:
                     try:
@@ -268,7 +268,7 @@ class EnergyTracker:
             # Adjust if you're on a different GPU.
             mean_gpu_w = 700.0
             gpu_wh = mean_gpu_w * elapsed_h
-            LOG.warning(f"[Energy/{self.label}] No GPU samples — "
+            LOG.warning(f"[Energy/{self.label}] No GPU samples - "
                         f"assuming 100% TDP ({mean_gpu_w:.0f} W) as GA4HPC would.")
 
         # ── CPU energy (proportional share of node TDP) ────────────────────
@@ -285,7 +285,7 @@ class EnergyTracker:
         timestamp = time.strftime("%Y%m%d-%H%M%S", time.localtime(self._t_end))
         run_id = f"job{job_id}_{timestamp}" if job_id else timestamp
 
-        # Utilisation statistics — analysis-facing saturation proof.
+        # Utilisation statistics - analysis-facing saturation proof.
         def _stats(xs):
             if not xs:
                 return {"mean": None, "p50": None, "p95": None, "max": None, "n": 0}
@@ -301,7 +301,7 @@ class EnergyTracker:
         sm_stats = _stats(self._sm_samples)
         mem_util_stats = _stats(self._mem_util_samples)
         vram_peak_gb = round(self._vram_peak_bytes / (1 << 30), 3) if self._vram_peak_bytes else None
-        # Mean fraction of the GPU's power-cap drawn on average — useful to
+        # Mean fraction of the GPU's power-cap drawn on average - useful to
         # flag under-utilisation penalties on systems like Rorqual.
         power_cap_w = None
         try:
@@ -488,7 +488,7 @@ def seed_everything(seed: int, deterministic: bool = False) -> None:
     # 'high' = use TF32 for FP32 matmuls (PyTorch-level control, complements allow_tf32)
     torch.set_float32_matmul_precision("high")
     # H100: allow BF16 accumulation in BF16 matmuls (faster; negligible accuracy loss
-    # for training — activations are already in BF16 under autocast)
+    # for training - activations are already in BF16 under autocast)
     torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True
     _configure_torch_compile_runtime()
 
@@ -609,7 +609,7 @@ def maybe_compile_model(
     """Compile with Inductor only when this runtime can do so safely."""
     reason = _torch_compile_skip_reason(model)
     if reason:
-        LOG.warning("[%s] torch.compile() skipped — %s", label, reason)
+        LOG.warning("[%s] torch.compile() skipped - %s", label, reason)
         return model
 
     try:
@@ -905,7 +905,7 @@ def _build_loader_kwargs(
         sig = inspect.signature(DataLoader)
         # `in_order=False` (PyTorch >=2.6) returns batches in worker-COMPLETION order to
         # avoid head-of-line blocking, but that makes the batch sequence depend on per-
-        # worker wall-clock timing — non-deterministic across otherwise-identical runs.
+        # worker wall-clock timing - non-deterministic across otherwise-identical runs.
         # Only enable it when deterministic reproducibility has NOT been requested
         # (seed_everything(deterministic=True) sets torch.use_deterministic_algorithms).
         if (train_mode and "in_order" in sig.parameters
@@ -997,7 +997,7 @@ def _parse_row_field_strength(row: Dict[str, Any]) -> Optional[float]:
             parsed = _parse_optional_float(row.get(key))
             # Reject non-physical field strengths: a numeric sentinel like -1 (used by
             # some cohorts for "missing") or 0 must be treated as MISSING, not as a real
-            # ultra-low-field scan — otherwise the equity sampler over-weights it as the
+            # ultra-low-field scan - otherwise the equity sampler over-weights it as the
             # rarest/hardest field-strength bucket.
             if parsed is not None and parsed > 0.0:
                 return parsed
@@ -1191,7 +1191,7 @@ def _configure_cuda_inference() -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 # One-shot, at-process-start auto-tuner. Detects the SLURM allocation + actual
 # GPU, probes the largest batch size that survives a fwd+bwd pass on synthetic
-# data, and rewrites the config in place. Runs exactly once per run — we do
+# data, and rewrites the config in place. Runs exactly once per run - we do
 # NOT retune mid-training because changing batch size mid-run silently
 # invalidates the LR schedule, the optimiser state, and reproducibility
 # (analysis-critical). All decisions are persisted to
@@ -1218,7 +1218,7 @@ class ResourceReport:
 def detect_system_resources(gpu_index: int = 0) -> ResourceReport:
     """Read SLURM envvars + /proc + NVML for a snapshot of the allocation.
 
-    Does not require psutil — falls back to ``os.cpu_count()`` and
+    Does not require psutil - falls back to ``os.cpu_count()`` and
     ``/proc/meminfo`` on Linux. Missing NVML is tolerated (returns zeros and
     adds a note).
     """
@@ -1226,7 +1226,7 @@ def detect_system_resources(gpu_index: int = 0) -> ResourceReport:
     cpu_total = os.cpu_count() or 1
     cpu_allocated = _allocated_cpu_budget(cpu_total)
 
-    # RAM allocated (SLURM) — prefer SLURM_MEM_PER_NODE; some sites expose
+    # RAM allocated (SLURM) - prefer SLURM_MEM_PER_NODE; some sites expose
     # SLURM_MEM_PER_CPU instead. Both are in megabytes.
     ram_allocated_mb: Optional[float] = None
     for key in ("SLURM_MEM_PER_NODE", "SLURM_MEM_PER_CPU"):
@@ -1291,7 +1291,7 @@ def detect_system_resources(gpu_index: int = 0) -> ResourceReport:
             maj, minor = torch.cuda.get_device_capability(gpu_index)
             cuda_cap = f"sm_{maj}{minor}"
             if vram_total_gb == 0.0:
-                # fallback if NVML missed — use torch's own query
+                # fallback if NVML missed - use torch's own query
                 vram_total_gb = float(torch.cuda.get_device_properties(gpu_index).total_memory) / (1 << 30)
         except Exception as exc:
             notes.append(f"torch CUDA capability probe failed: {exc}")
@@ -1323,8 +1323,8 @@ def probe_max_batch_size(
     """Binary-search the largest batch size that survives fwd(+bwd).
 
     Strategy:
-      * Phase 1 — doubling: 1, 2, 4, 8, ... until the first OOM (or upper_bound).
-      * Phase 2 — bisection between the last safe value and the first OOM.
+      * Phase 1 - doubling: 1, 2, 4, 8, ... until the first OOM (or upper_bound).
+      * Phase 2 - bisection between the last safe value and the first OOM.
       * Return ``floor(last_safe * safety)``.
 
     ``safety`` leaves a margin for: mini-batch variance (the probed shape is
@@ -1383,7 +1383,7 @@ def probe_max_batch_size(
             return max(1, last_ok_bs)
         return max(1, int(math.floor(last_ok_bs * safety)))
 
-    # Phase 1 — doubling search.
+    # Phase 1 - doubling search.
     bs = 1
     last_ok = 0
     while bs <= upper_bound:
@@ -1398,14 +1398,14 @@ def probe_max_batch_size(
 
     if last_ok == 0:
         LOG.warning(
-            "[auto_resources] batch_size=1 failed the fit probe — model or "
+            "[auto_resources] batch_size=1 failed the fit probe - model or "
             "patch_size is too large for this GPU. Returning 1."
         )
         return 1
     if last_ok * 2 > upper_bound and last_ok == upper_bound:
         return _apply_safety(last_ok)
 
-    # Phase 2 — bisection between the last safe bs and the first failing bs.
+    # Phase 2 - bisection between the last safe bs and the first failing bs.
     lo = last_ok
     hi = min(bs, upper_bound)
     while lo + 1 < hi:
@@ -1506,7 +1506,7 @@ def auto_tune_resources(
                 require_backward=require_backward,
             )
         except Exception as exc:
-            LOG.warning("[auto_resources/%s] probe_max_batch_size failed: %s — "
+            LOG.warning("[auto_resources/%s] probe_max_batch_size failed: %s - "
                         "keeping existing batch_size=%s",
                         label, exc, old["batch_size"])
             probed = None
@@ -1630,7 +1630,7 @@ def _brats_lesion_wise_region(
 
     1. Compute connected components on GT and prediction independently.
     2. Discard GT components below ``min_lesion_size`` voxels (annotation
-       jitter / partial-volume noise — not real lesions).
+       jitter / partial-volume noise - not real lesions).
     3. For each surviving GT component, dilate by ``dilation_iterations``
        and look for any pred component intersecting the dilated tube.
     4. **TP**: union of intersecting pred components evaluated against the
@@ -1731,7 +1731,9 @@ def _brats_metrics_np(
         if compute_hd95:
             results[f"hd95_{name}"] = _hausdorff95_binary(p_region, t_region, spacing=spacing)
         else:
-            results[f"hd95_{name}"] = 0.0
+            # NaN, not 0.0 - a 0.0 placeholder is an impossible "perfect" HD95 that
+            # silently contaminates any epoch-averaged HD95. NaN propagates honestly.
+            results[f"hd95_{name}"] = float("nan")
         if compute_lesion_wise:
             lw = _brats_lesion_wise_region(
                 p_region, t_region, spacing=spacing,
@@ -1795,6 +1797,35 @@ def _json_default(obj: Any) -> Any:
     if isinstance(obj, np.ndarray):
         raise TypeError("Refusing to serialize numpy.ndarray directly; convert it first")
     raise TypeError(f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
+def _code_provenance() -> Dict[str, str]:
+    """Reproducibility provenance recorded with every run.
+
+    The 17k-line legacy module is referenced by *path* on the cluster, so a local
+    edit between two runs is otherwise invisible in the checkpoint directory. We
+    record the git SHA (+ a dirty flag) or, if git is unavailable, a hash of this
+    file, plus the torch/numpy versions, so a result is traceable to exact code.
+    Never raises - provenance is best-effort and must not break a training save.
+    """
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    prov: Dict[str, str] = {}
+    try:
+        prov["git_sha"] = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=here,
+            stderr=subprocess.DEVNULL, timeout=5).decode().strip()
+        prov["git_dirty"] = str(subprocess.run(
+            ["git", "diff", "--quiet"], cwd=here, timeout=5).returncode != 0)
+    except Exception:
+        prov["git_sha"] = "unknown"
+    try:
+        prov["legacy_sha256"] = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()[:16]
+    except Exception:
+        prov["legacy_sha256"] = "unknown"
+    prov["torch_version"] = str(getattr(torch, "__version__", "?"))
+    prov["numpy_version"] = str(getattr(np, "__version__", "?"))
+    return prov
 
 
 def save_json(obj: dict, path: Union[str, Path]) -> None:
@@ -1923,7 +1954,7 @@ def _pin_sitk_threads() -> None:
     try:
         import SimpleITK as sitk  # type: ignore
         sitk.ProcessObject.SetGlobalDefaultNumberOfThreads(n_threads)
-        # Best-effort version probe — different SimpleITK lines name this
+        # Best-effort version probe - different SimpleITK lines name this
         # differently, so swallow AttributeErrors and proceed.
         try:
             sitk_version = str(sitk.Version.VersionString())  # type: ignore[attr-defined]
@@ -1933,7 +1964,7 @@ def _pin_sitk_threads() -> None:
             except Exception:
                 sitk_version = None
     except Exception:
-        # SimpleITK absent or older API — nothing to pin.
+        # SimpleITK absent or older API - nothing to pin.
         pass
     # Mirror the cap into ITK's env-var so any nested ITK process that does
     # not go through SimpleITK's Python API (rare) honours the same budget.
@@ -1956,7 +1987,7 @@ def _pin_sitk_threads() -> None:
                     sitk_version or "unavailable",
                 )
             except Exception:
-                # Logging is observability only — never let it abort training.
+                # Logging is observability only - never let it abort training.
                 pass
         _N4_SETTINGS_LOGGED = True
 
@@ -2005,8 +2036,8 @@ def _assert_aligned_volume(
     Exception``, dropping the case from the epoch with no error message.
 
     Reasonable cross-scanner tolerances:
-      * spacing: ±0.05 mm (50 micrometres) — captures e.g. 1.0 mm vs 1.00010 mm
-      * translation column: ±0.5 mm — sub-voxel jitter from BraTS preprocessing
+      * spacing: ±0.05 mm (50 micrometres) - captures e.g. 1.0 mm vs 1.00010 mm
+      * translation column: ±0.5 mm - sub-voxel jitter from BraTS preprocessing
       * R/S 3x3 block:      ±1e-2 in cosines (~0.6° rotation) → WARN, don't reject
 
     Sub-millimetre R/S drift logs a warning so a downstream investigator can
@@ -2023,7 +2054,7 @@ def _assert_aligned_volume(
             f"expected {reference_spacing.tolist()}, got {spacing.tolist()} from {source_path}"
         )
     diff = np.abs(affine - reference_affine)
-    # Translation: last column, first three rows — directly in mm.
+    # Translation: last column, first three rows - directly in mm.
     if np.any(diff[:3, 3] > affine_translation_tol_mm):
         raise ValueError(
             f"[{case_id}] {source_name} translation mismatch (>{affine_translation_tol_mm} mm) "
@@ -2033,7 +2064,7 @@ def _assert_aligned_volume(
     if np.any(diff[:3, :3] > affine_rs_tol):
         max_rs_err = float(diff[:3, :3].max())
         LOG.warning(
-            "[%s] %s R/S block off by %.2e (>%.2e) for %s — proceeding "
+            "[%s] %s R/S block off by %.2e (>%.2e) for %s - proceeding "
             "(multi-scanner LMIC drift; verify with manual QC if reproducible).",
             case_id, source_name, max_rs_err, affine_rs_tol, source_path,
         )
@@ -2052,7 +2083,7 @@ def save_nifti_like(array: np.ndarray, reference_path: str, out_path: str,
     if not np.issubdtype(arr.dtype, np.integer) and np.issubdtype(np.dtype(dtype), np.integer):
         info = np.iinfo(dtype)
         if arr.size and (np.nanmin(arr) < info.min or np.nanmax(arr) > info.max):
-            LOG.warning("save_nifti_like: values [%.3g, %.3g] outside %s range — clipping.",
+            LOG.warning("save_nifti_like: values [%.3g, %.3g] outside %s range - clipping.",
                         float(np.nanmin(arr)), float(np.nanmax(arr)), np.dtype(dtype).name)
         arr = np.clip(np.round(arr), info.min, info.max)
     nib.save(
@@ -2286,13 +2317,13 @@ def simulate_annotation_noise(
     MultiModalSegDataset.__getitem__ when the dataset's ``label_noise_prob``
     is > 0 and only for the training split (see §5). It is NEVER applied
     during validation, evaluation, inference, ONNX export, or quantisation
-    comparison — those paths consume raw labels. Reviewers: verify by
+    comparison - those paths consume raw labels. Reviewers: verify by
     grepping the code for calls to ``simulate_annotation_noise``; the only
     call-site outside this definition is in the training dataset.
 
     Modes:
         "morph" (default, backwards-compatible):
-            Per-class symmetric erosion/dilation by 1-2 voxels — coarse but
+            Per-class symmetric erosion/dilation by 1-2 voxels - coarse but
             cheap. Models systematic over/under-segmentation across raters.
         "boundary_band" (preferred for evaluation rigor; PDF §4.4):
             Identify the ``band_radius``-voxel band around each class
@@ -2816,6 +2847,17 @@ def brats_metrics(
                       present (set to 0.0) so downstream code never
                       KeyErrors.  Use hd95_freq in the config to control
                       how often HD95 is actually computed during training.
+
+    REPORTING - these are RAW, per-epoch TRAINING-DIAGNOSTIC metrics: no
+    connected-component post-processing and NOT lesion-wise. They are
+    deliberately pessimistic - far-away false-positive islands inflate HD95, and
+    the 373.1287 mm empty-region penalty (absent ET in particular) dominates the
+    mean. Do NOT quote them as paper numbers. The reported Dice/HD95 come from the
+    standalone ``evaluate --lesion_wise`` path
+    (``connected_component_postprocessing`` + BraTS-2023 lesion-wise HD95 with the
+    373.1287 mm FP/FN convention), stratified by field strength via the
+    ``stratify`` / ``field_strength_curve`` subcommands (already wired in
+    slurm/submit_ogap_posthoc_full_trillium.sbatch).
     """
     results: Dict[str, float] = {}
 
@@ -2833,7 +2875,7 @@ def brats_metrics(
             t_np = t.squeeze().cpu().numpy().astype(bool)
             results[f"hd95_{name}"] = _hausdorff95_binary(p_np, t_np, spacing=spacing)
         else:
-            results[f"hd95_{name}"] = 0.0  # placeholder — not computed this epoch
+            results[f"hd95_{name}"] = float("nan")  # not computed this epoch (NaN, not a misleading 0.0)
 
     results["dice_brats_mean"] = float(np.mean([results[f"dice_{r}"] for r in ["WT", "TC", "ET"]]))
     results["hd95_brats_mean"] = float(np.mean([results[f"hd95_{r}"] for r in ["WT", "TC", "ET"]]))
@@ -2876,11 +2918,11 @@ class MRIPhysicsAugmentor:
     """Anatomically-realistic MRI augmentation pipeline.
 
     Applies transforms in a physically consistent order:
-    1. Geometric (elastic, flip, rotate) — shape changes
-    2. Bias field — B₁ inhomogeneity
-    3. Noise — thermal/Rician noise
-    4. Intensity (gamma, brightness) — scanner calibration
-    5. Resolution degradation — slice thickness variation
+    1. Geometric (elastic, flip, rotate) - shape changes
+    2. Bias field - B₁ inhomogeneity
+    3. Noise - thermal/Rician noise
+    4. Intensity (gamma, brightness) - scanner calibration
+    5. Resolution degradation - slice thickness variation
 
     The low-field behaviour is intentionally conservative. Based on Marques
     et al. (JMRI 2019), moving from 1.5T/3T to sub-1T should not be modeled as
@@ -3013,9 +3055,9 @@ class MRIPhysicsAugmentor:
         "csf":   {0.064: 3500.0, 0.2: 3800.0, 0.55: 4000.0, 1.0: 4150.0, 1.5: 4250.0, 3.0: 4500.0, 7.0: 4500.0},
         # Vasogenic edema (T1 close to CSF at low field, drops at high field)
         "edema": {0.064: 600.0, 0.2: 900.0, 0.55: 1300.0, 1.0: 1550.0, 1.5: 1750.0, 3.0: 2000.0, 7.0: 2400.0},
-        # Enhancing tumor — LEGACY POST-Gd-shortened convention: this row is ALREADY the
+        # Enhancing tumor - LEGACY POST-Gd-shortened convention: this row is ALREADY the
         # contrast-enhanced (short-T1) species (Solomon 1955 PRE; stronger effect at low
-        # B0). NOTE: the v9.1 package path uses the OPPOSITE convention — pre-contrast T1
+        # B0). NOTE: the v9.1 package path uses the OPPOSITE convention - pre-contrast T1
         # in ``ogap.augmentations.relaxation_constants.ENHANCING_TUMOUR`` plus an explicit
         # SBM shortening via ``gd_shortened_t1``. That module is the single source of truth
         # for new work; do not compare these two ET curves directly (different conventions).
@@ -3056,7 +3098,7 @@ class MRIPhysicsAugmentor:
         """Linear ramp in [0, 1] that equals 0 at >=1.5 T and ~0.96 at 0.064 T.
 
         FIX (Finding 3, 2026 audit): Denominator was 1.2, which clipped at
-        any field strength below 0.3 T — meaning 0.3 T (low-field) and
+        any field strength below 0.3 T - meaning 0.3 T (low-field) and
         0.064 T (Hyperfine ultra-low) produced the same factor (1.0).  The
         full LMIC fleet spans 0.064 T (Hyperfine Swoop) to 0.5 T (modern
         open scanners), and we want a smoothly increasing severity across
@@ -3080,8 +3122,8 @@ class MRIPhysicsAugmentor:
         """Linear ramp in [0, 1] that equals 0 at <=1.5 T and 1 at >=3 T.
 
         Uses the same 1.5 T pivot. The 3 T ceiling reflects standard
-        clinical high-field systems (Wald, NeuroImage 2012 — high-field
-        MRI review; Duyn, NeuroImage 2012 — 7 T considerations). Increases
+        clinical high-field systems (Wald, NeuroImage 2012 - high-field
+        MRI review; Duyn, NeuroImage 2012 - 7 T considerations). Increases
         modelled B1+ inhomogeneity severity and reduces simulated thermal
         noise at higher field per SNR ∝ B0 scaling (Edelstein et al.,
         Magn Reson Med 1986)."""
@@ -3119,7 +3161,7 @@ class MRIPhysicsAugmentor:
     def _elastic_deformation(self, x: np.ndarray, y: Optional[np.ndarray]):
         """3D elastic deformation (Cirillo et al. top-2 for brain tumour seg).
 
-        Displacement field is computed at HALF resolution then upsampled — gives
+        Displacement field is computed at HALF resolution then upsampled - gives
         visually identical deformations ~4x faster on 128^3 patches.
 
         Linear interpolation plus a warped foreground mask preserves the
@@ -3163,7 +3205,7 @@ class MRIPhysicsAugmentor:
     def _simulate_bias_field(self, x: np.ndarray):
         """Low-order polynomial bias field simulating B₁ inhomogeneity.
 
-        Computed at half resolution and upsampled — bias fields are spatially
+        Computed at half resolution and upsampled - bias fields are spatially
         smooth (low-order polynomial) so there is no quality loss, but the
         meshgrid + polynomial evaluation runs ~8× faster on half-sized arrays.
         """
@@ -3578,7 +3620,7 @@ class MRIPhysicsAugmentor:
 
     @staticmethod
     def _signal_se(t1: float, t2: float, tr: float, te: float) -> float:
-        """Spin-echo signal proxy: M0 · (1 − exp(−TR/T1)) · exp(−TE/T2). M0=1."""
+        """Spin-echo signal proxy: M0 · (1 - exp(-TR/T1)) · exp(-TE/T2). M0=1."""
         if t1 <= 0:
             return 0.0
         return float((1.0 - math.exp(-tr / max(t1, 1.0))) * math.exp(-te / max(t2, 1.0)))
@@ -3592,6 +3634,26 @@ class MRIPhysicsAugmentor:
                    + math.exp(-tr / max(t1, 1.0)))
         return float(abs(recover) * math.exp(-te / max(t2, 1.0)))
 
+    @staticmethod
+    def _modality_signal_scalar(b0: float, tissue: str, modality_kind: str) -> float:
+        """SE/IR signal for a tissue class at field strength ``b0`` (pure scalar).
+
+        Single source of truth for the field-strength contrast model: shared by
+        the CPU ``_modality_signal`` (below) and the GPU
+        ``GPUPhysicsAugmentor._simulate_field_strength_contrast_batch`` so both
+        augmentors warp contrast against the *same* relaxometry LUT + SE/IR proxy
+        (no risk of the two paths drifting apart).
+        """
+        t1 = MRIPhysicsAugmentor._interp_log_b0(MRIPhysicsAugmentor._T1_TABLE_MS[tissue], b0)
+        t2 = MRIPhysicsAugmentor._interp_log_b0(MRIPhysicsAugmentor._T2_TABLE_MS[tissue], b0)
+        if modality_kind == "t1":
+            return MRIPhysicsAugmentor._signal_se(t1, t2, tr=600.0, te=10.0)
+        if modality_kind == "t2":
+            return MRIPhysicsAugmentor._signal_se(t1, t2, tr=4500.0, te=90.0)
+        if modality_kind == "flair":
+            return MRIPhysicsAugmentor._signal_ir(t1, t2, tr=9000.0, te=110.0, ti=2400.0)
+        return MRIPhysicsAugmentor._signal_se(t1, t2, tr=600.0, te=10.0)
+
     def _modality_signal(self, b0: float, tissue: str, modality_kind: str) -> float:
         """Tissue signal at field strength b0 for a given modality template.
 
@@ -3599,15 +3661,7 @@ class MRIPhysicsAugmentor:
         for normal tissues and only differs at the ET tissue class (which has
         a Gd-shortened T1 curve in _T1_TABLE_MS).
         """
-        t1 = self._interp_log_b0(self._T1_TABLE_MS[tissue], b0)
-        t2 = self._interp_log_b0(self._T2_TABLE_MS[tissue], b0)
-        if modality_kind == "t1":
-            return self._signal_se(t1, t2, tr=600.0, te=10.0)
-        if modality_kind == "t2":
-            return self._signal_se(t1, t2, tr=4500.0, te=90.0)
-        if modality_kind == "flair":
-            return self._signal_ir(t1, t2, tr=9000.0, te=110.0, ti=2400.0)
-        return self._signal_se(t1, t2, tr=600.0, te=10.0)
+        return self._modality_signal_scalar(b0, tissue, modality_kind)
 
     @staticmethod
     def _classify_voxels_3bin(channel: np.ndarray, fg_mask: np.ndarray) -> np.ndarray:
@@ -3669,8 +3723,8 @@ class MRIPhysicsAugmentor:
             ch = out[c]
             kind = kinds[c]
             # Foreground = nonzero after zscore_nonzero (background is exactly 0). The old
-            # percentile-over-whole-volume threshold (~0.004) dropped ~15% of foreground —
-            # the negative-z-score voxels (CSF / edema / below-mean) — from the B0 warp.
+            # percentile-over-whole-volume threshold (~0.004) dropped ~15% of foreground -
+            # the negative-z-score voxels (CSF / edema / below-mean) - from the B0 warp.
             fg_mask = ch != 0
             if not np.any(fg_mask):
                 continue
@@ -3963,7 +4017,7 @@ class MRIPhysicsAugmentor:
         x = self._simulate_ghosting(x)
         x = self._simulate_kspace_spike(x)
         x = self._simulate_gibbs(x)
-        # 8. AFA Fourier-basis perturbation — applied LAST so the sampled basis
+        # 8. AFA Fourier-basis perturbation - applied LAST so the sampled basis
         # fills the frequency-domain augmentation gap left by visual transforms.
         x = self._fourier_amplitude_mix(x, donor)
         return x, y
@@ -3975,7 +4029,7 @@ class MRIPhysicsAugmentor:
 # Wraps a generator network that maps high-field (3T) volumes to ultra-low-
 # field (~64 mT) appearance, exposed via ONNX so we never have to re-train it.
 # When weights are not available the wrapper is a no-op identity so the
-# training pipeline stays runnable. Integration is an *augmentation* — the
+# training pipeline stays runnable. Integration is an *augmentation* - the
 # generator is consulted with low probability per case to inject synthetic
 # ULF examples without acquiring new data.
 #
@@ -4015,7 +4069,7 @@ class ULFGANAugmentor:
             return
         if not Path(self.weights_path).exists():
             LOG.warning(
-                "[ULFGAN] weights_path %s does not exist — pass-through enabled",
+                "[ULFGAN] weights_path %s does not exist - pass-through enabled",
                 self.weights_path,
             )
             return
@@ -4028,7 +4082,7 @@ class ULFGANAugmentor:
                 self._mode = "onnx"
                 LOG.info("[ULFGAN] loaded ONNX generator from %s", self.weights_path)
             except Exception as exc:  # noqa: BLE001
-                LOG.warning("[ULFGAN] failed to load ONNX generator (%s) — pass-through", exc)
+                LOG.warning("[ULFGAN] failed to load ONNX generator (%s) - pass-through", exc)
                 self._session = None
         else:
             try:
@@ -4037,7 +4091,7 @@ class ULFGANAugmentor:
                 self._mode = "torchscript"
                 LOG.info("[ULFGAN] loaded TorchScript generator from %s", self.weights_path)
             except Exception as exc:  # noqa: BLE001
-                LOG.warning("[ULFGAN] failed to load TorchScript generator (%s) — pass-through", exc)
+                LOG.warning("[ULFGAN] failed to load TorchScript generator (%s) - pass-through", exc)
                 self._session = None
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
@@ -4060,7 +4114,7 @@ class ULFGANAugmentor:
                 return out[0].astype(np.float32, copy=False)
             return x
         except Exception as exc:  # noqa: BLE001
-            LOG.warning("[ULFGAN] inference failed (%s) — falling back to identity", exc)
+            LOG.warning("[ULFGAN] inference failed (%s) - falling back to identity", exc)
             return x
 
 
@@ -4102,6 +4156,8 @@ class GPUPhysicsAugmentor:
         focal_b1_gain_range: Tuple[float, float] = (0.05, 0.25),
         lmic_field_strength_prior: bool = False,
         contrast_mod_indices: Optional[Sequence[int]] = None,
+        p_field_contrast_warp: float = 0.0,
+        field_contrast_source_b0: float = 3.0,
     ) -> None:
         self.p_flip = p_flip
         self.p_elastic = p_elastic
@@ -4128,6 +4184,10 @@ class GPUPhysicsAugmentor:
         self.focal_b1_gain_range = focal_b1_gain_range
         self.lmic_field_strength_prior = bool(lmic_field_strength_prior)
         self.contrast_mod_indices = [int(i) for i in (contrast_mod_indices or [])]
+        # Field-strength contrast warp (GPU port of the CPU augmentor's most
+        # impactful low-field lever). p<=0 keeps the historical no-op behaviour.
+        self.p_field_contrast_warp = float(p_field_contrast_warp)
+        self.field_contrast_source_b0 = float(field_contrast_source_b0)
         self._grid_cache: Dict[Tuple[Tuple[int, int, int], str, str], torch.Tensor] = {}
         self._coord_cache: Dict[Tuple[Tuple[int, int, int], str, str], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]] = {}
         self._field_strength_choices = torch.tensor([0.3, 0.55, 0.7, 1.0, 1.5, 3.0], dtype=torch.float32)
@@ -4232,6 +4292,98 @@ class GPUPhysicsAugmentor:
         choices = self._field_strength_choices.to(device=device, dtype=dtype)
         idx = torch.multinomial(probs, batch_size, replacement=True)
         return choices.index_select(0, idx)
+
+    def _field_contrast_warp_ratio(
+        self, b0_src: float, b0_tgt: float, tissue: str, kind: str
+    ) -> float:
+        """Target-vs-source SE/IR signal ratio for a tissue class, clipped to
+        [0.1, 4.0]. Reuses MRIPhysicsAugmentor's relaxometry LUT + SE/IR model so
+        the GPU and CPU augmentors share ONE physics source of truth."""
+        s_src = MRIPhysicsAugmentor._modality_signal_scalar(b0_src, tissue, kind)
+        s_tgt = MRIPhysicsAugmentor._modality_signal_scalar(b0_tgt, tissue, kind)
+        if s_src <= 1e-6:
+            return 1.0
+        return float(np.clip(s_tgt / s_src, 0.10, 4.0))
+
+    def _simulate_field_strength_contrast_batch(
+        self,
+        x: torch.Tensor,
+        field_strength: torch.Tensor,
+    ) -> torch.Tensor:
+        """GPU port of ``MRIPhysicsAugmentor._simulate_field_strength_contrast``.
+
+        Re-renders each sample's implied tissue contrast from the assumed source
+        field (``field_contrast_source_b0``, nominally 3 T - the BraTS/UTSW modal
+        field) to the per-sample target B0 already sampled in ``__call__``. Because
+        that same ``field_strength`` also drives the noise and resolution
+        transforms, contrast / noise / resolution now all scale against ONE field
+        strength - a physical coherence the GPU path previously lacked (only the
+        CPU augmentor warped contrast, and only when it was the active engine).
+
+        Each foreground channel is split into low/mid/high tissue bins by intensity
+        terciles, and every bin is rescaled by the ratio of target-vs-source SE/IR
+        signal for its tissue class (ET on the contrast channels). Background zeros
+        are left untouched (the x==0 skull-stripped deployment invariant).
+        """
+        p = float(self.p_field_contrast_warp)
+        if p <= 0.0:
+            return x
+        n, c = int(x.shape[0]), int(x.shape[1])
+        b0_src = float(self.field_contrast_source_b0)
+        if c == 4:
+            kinds = ("t1", "t1", "t2", "flair")
+        elif c == 1:
+            kinds = ("t1",)
+        else:
+            kinds = tuple("t1" for _ in range(c))
+        contrast_set = set(self.contrast_mod_indices)
+        # Per-sample Bernoulli gate + host copies of the small per-sample scalars
+        # (one transfer; no per-bin device syncs on the gate / field strength).
+        apply = (torch.rand(n, device=x.device) < p).tolist()
+        fs = field_strength.detach().float().cpu().tolist()
+        for bi in range(n):
+            if not apply[bi]:
+                continue
+            b0 = float(fs[bi])
+            if abs(b0 - b0_src) < 0.05:
+                continue  # already at the source field; nothing to warp
+            for ci in range(c):
+                ch = x[bi, ci]
+                fg = ch != 0
+                fg_vals = ch[fg]
+                if fg_vals.numel() < 8:
+                    continue
+                # Terciles over the foreground (matches CPU np.percentile[33.3,66.7]).
+                # torch.quantile caps near 2**24 elems; subsample above ~1M.
+                if fg_vals.numel() > 1_000_000:
+                    sel = torch.randint(fg_vals.numel(), (1_000_000,), device=fg_vals.device)
+                    fg_vals = fg_vals.index_select(0, sel)
+                q1, q2 = torch.quantile(
+                    fg_vals.float(),
+                    torch.tensor([0.333, 0.667], device=fg_vals.device, dtype=torch.float32),
+                ).tolist()
+                kind = kinds[ci]
+                if kind == "t1":
+                    bin_to_tissue = {0: "csf", 1: "wm", 2: "gm"}
+                elif kind == "t2":
+                    bin_to_tissue = {0: "wm", 1: "gm", 2: "edema"}
+                else:  # flair
+                    bin_to_tissue = {0: "csf", 1: "wm", 2: "edema"}
+                if ci in contrast_set and kind == "t1":
+                    bin_to_tissue[2] = "et"
+                # Masks are snapshotted before any in-place rescale; bins are
+                # disjoint, so the per-bin multiplies never compound.
+                bins = (
+                    (fg & (ch <= q1), bin_to_tissue[0]),
+                    (fg & (ch > q1) & (ch <= q2), bin_to_tissue[1]),
+                    (fg & (ch > q2), bin_to_tissue[2]),
+                )
+                for bin_mask, tissue in bins:
+                    ratio = self._field_contrast_warp_ratio(b0_src, b0, tissue, kind)
+                    if abs(ratio - 1.0) < 1e-6:
+                        continue
+                    ch[bin_mask] = ch[bin_mask] * ratio
+        return x
 
     def _flip_batch(
         self,
@@ -4709,6 +4861,10 @@ class GPUPhysicsAugmentor:
             field_strength = self._sample_field_strengths(x.shape[0], x.device, x.dtype)
             x, y = self._flip_batch(x, y if have_labels else None)
             x, y = self._elastic_deformation_batch(x, y if have_labels else None)
+            # Field-strength contrast warp BEFORE bias/noise (matches the CPU
+            # ordering) so downstream noise/resolution scale against the warped,
+            # target-B0 signal rather than the original 3 T contrast.
+            x = self._simulate_field_strength_contrast_batch(x, field_strength)
             x = self._simulate_bias_field_batch(x, field_strength)
             x = self._simulate_focal_b1_inhomogeneity_batch(x, field_strength)
             x = self._apply_noise_model_batch(x, field_strength)
@@ -4778,7 +4934,7 @@ class MultiModalSegDataset(Dataset):
         ulf_gan_target_b0: float = 0.064,
         # FIX (Gap B, 2026 audit): per-modality random dropout at train time.
         # Was student-only; teacher now uses this so its KD logits encode
-        # "what to predict when modality X is missing" — critical for LMIC
+        # "what to predict when modality X is missing" - critical for LMIC
         # deployment where T1c contrast often is not acquired.  Set 0.0 to
         # disable; recommended 0.15 for clinically-realistic training.  The
         # max_drop guard keeps at least (n_modalities - max_drop) channels
@@ -4912,7 +5068,7 @@ class MultiModalSegDataset(Dataset):
             # Do NOT silently pass labels through un-remapped: a malformed remap field
             # (e.g. ERASMUS binary->class 1) means wrong cross-dataset labels or a case
             # dropped later by _canonicalise_label_values. Warn so the CSV gets fixed.
-            LOG.warning("[label_remap] malformed JSON %r (%s); applying NO remap — "
+            LOG.warning("[label_remap] malformed JSON %r (%s); applying NO remap - "
                         "cross-dataset labels may be wrong. Fix the manifest.",
                         remap_str, exc)
             return y
@@ -4953,7 +5109,7 @@ class MultiModalSegDataset(Dataset):
             if is_utsw:
                 hint += (
                     " For UTSW-glioma the manual masks usually follow the legacy "
-                    "{0,1,2,4} convention — auto-remap 4→3 has already run, so any "
+                    "{0,1,2,4} convention - auto-remap 4→3 has already run, so any "
                     "remaining out-of-range values likely indicate a different "
                     "annotation protocol; verify with the data manager."
                 )
@@ -5028,7 +5184,7 @@ class MultiModalSegDataset(Dataset):
     ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
         """Return (donor_x, donor_y) for a tumor-bearing donor, full volume.
 
-        We deliberately do NOT crop the donor — CarveMix needs to know the
+        We deliberately do NOT crop the donor - CarveMix needs to know the
         tumor's bounding box in the donor's native voxel grid so that the
         carve preserves the lesion's full extent.
         """
@@ -5640,7 +5796,7 @@ class MultiModalSegDataset(Dataset):
 
 
 class InferenceDataset(Dataset):
-    """Inference-only dataset — never loads labels.
+    """Inference-only dataset - never loads labels.
 
     Resilient to missing modality columns: a CSV row may omit a modality
     column entirely, leave it blank, or point to a non-existent file. In all
@@ -5650,9 +5806,9 @@ class InferenceDataset(Dataset):
     are never fed to the network as observed zeros.
 
     Stashed in each returned row dict:
-        ``__present_mask__`` : np.ndarray, shape (C,), dtype float32 — 1.0 if
+        ``__present_mask__`` : np.ndarray, shape (C,), dtype float32 - 1.0 if
             modality i was loaded from disk, 0.0 if zero-filled.
-        ``__ref_path__``    : str — path to the modality used as the
+        ``__ref_path__``    : str - path to the modality used as the
             geometry reference (first one present on disk).
     """
 
@@ -5736,7 +5892,7 @@ class InferenceDataset(Dataset):
 # ══════════════════════════════════════════════════════════════════════════════
 
 class ECABlock3D(nn.Module):
-    """Efficient Channel Attention — quantisation-friendly replacement for SE.
+    """Efficient Channel Attention - quantisation-friendly replacement for SE.
 
     Uses 1D convolution to learn inter-channel dependencies with
     near-zero parameter overhead (~5-7 params per block vs ~8K for SE).
@@ -5800,7 +5956,7 @@ class CurriculumDropout3D(nn.Module):
     regularisation: easy learning first, then progressive challenge.
 
     Uses Dropout3d (spatial dropout) which drops entire feature map
-    channels — more effective than element-wise dropout for CNNs.
+    channels - more effective than element-wise dropout for CNNs.
 
     Ref: Morerio et al., "Curriculum Dropout" ICCV 2017 (arXiv:1703.06229)
          Li et al., "Disharmony Between Dropout and BN" CVPR 2019
@@ -5967,7 +6123,7 @@ def _teacher_block_class(block_style: str) -> type:
     "dense"   → DenseConvBlock3D (full 3x3x3 convs, ~4-5x heavier;
                 use for the heavy teacher in KD setups).
 
-    Student always uses ResConvBlock3D regardless of this setting — only
+    Student always uses ResConvBlock3D regardless of this setting - only
     the teacher's capacity is configurable, since only the student is
     exported to INT8.
     """
@@ -6025,7 +6181,7 @@ class UNet3DTeacher(nn.Module):
         # FIX (Gap A, 2026 audit): Inject MixStyle3D after encoder block 1 and
         # block 2.  Only the student previously had feature-level domain
         # randomization, so the teacher logits used for KD encoded no
-        # cross-scanner invariance — distillation then transferred only the
+        # cross-scanner invariance - distillation then transferred only the
         # data-augmentation noise distribution to the student.  Putting
         # MixStyle3D in the teacher pushes domain-invariant features into the
         # KD signal itself.  MixStyle3D is an identity at eval, so this only
@@ -6076,7 +6232,7 @@ class SegMambaTeacher(nn.Module):
     ``mamba-ssm`` package is installed (``pip install mamba-ssm``). Mamba's
     linear-time sequence operator gives the teacher long-range 3D context
     that the convolutional UNet3DTeacher cannot capture, which is the
-    motivation for using SegMamba as a SECOND teacher in OGAP — the student
+    motivation for using SegMamba as a SECOND teacher in OGAP - the student
     stays the cheap, INT8-friendly UNet3D, but it can be distilled from a
     Mamba teacher when the option is enabled.
 
@@ -6136,7 +6292,7 @@ class SegMambaTeacher(nn.Module):
 
         # FIX (Gap A, 2026 audit): same MixStyle3D injection as UNet3DTeacher.
         # The SegMamba bottleneck is non-traceable under torch.compile but the
-        # convolutional encoder is — MixStyle3D fits cleanly there, and the
+        # convolutional encoder is - MixStyle3D fits cleanly there, and the
         # KD signal benefits from cross-scanner invariance the same way.
         if feature_dr in ("mixstyle", "dsu"):
             self.mixstyle_e1 = MixStyle3D(p=feature_dr_p, alpha=feature_dr_alpha, mode=feature_dr)
@@ -6280,10 +6436,10 @@ class MixStyle3D(nn.Module):
     its own and a permuted batchmate's. At eval time it is a no-op identity.
 
     Two modes (controlled by ``mode``):
-      * ``"mixstyle"`` — Zhou et al., "Domain Generalization with MixStyle",
+      * ``"mixstyle"`` - Zhou et al., "Domain Generalization with MixStyle",
         ICLR 2021. Sample λ ∼ Beta(α, α) and mix with a permuted batchmate.
         Recommended default for cross-site segmentation.
-      * ``"dsu"`` — Li et al., "Uncertainty Modeling for Out-of-Distribution
+      * ``"dsu"`` - Li et al., "Uncertainty Modeling for Out-of-Distribution
         Generalization in Visual Recognition" (DSU), ICLR 2022. Sample
         per-instance perturbed (μ, σ) from a Gaussian fitted to the
         within-batch (μ, σ) distribution. Slightly stronger; needs ≥4 batch.
@@ -6394,7 +6550,7 @@ class UNet3DStudent(nn.Module):
         # to avoid disrupting low-level feature learning
         self.enc1 = Block(in_channels, b, attention=attention)
         # Feature-space domain randomization (Zhou+ 2021 MixStyle / Li+ 2022 DSU).
-        # Inserted after the first encoder block — the standard early-layer
+        # Inserted after the first encoder block - the standard early-layer
         # placement that the MixStyle paper found most effective.
         self.feature_dr = MixStyle3D(p=feature_dr_p, alpha=feature_dr_alpha, mode=feature_dr)
         self.pool1 = nn.Conv3d(b, b, 2, stride=2, groups=b, bias=False)
@@ -6476,7 +6632,7 @@ class UNet3DStudent(nn.Module):
         if return_aux_outputs:
             aux_outputs = {
                 # self.rano_head is untrained (no per-case RANO targets exist for any
-                # OGAP cohort) and is NOT emitted — exposing an untrained head's output as
+                # OGAP cohort) and is NOT emitted - exposing an untrained head's output as
                 # "rano" risks it being read as a clinical measurement. The reported RANO
                 # comes from the geometric _region_clinical_measurements; the head is kept
                 # in __init__ only for checkpoint compatibility.
@@ -6551,7 +6707,7 @@ class DiceCELoss(nn.Module):
         # FIX (Finding 1, 2026 audit): Softmax + Dice numerator/denominator are
         # computed in FP32 even under BF16 autocast.  BF16 has ~3 decimal digits
         # of precision; with a 1e-5 Dice epsilon, the smallest BraTS foreground
-        # class (class 3 — enhancing tumour) gets biased gradients.  The cost is
+        # class (class 3 - enhancing tumour) gets biased gradients.  The cost is
         # negligible (matmuls remain BF16; only the elementwise reduction is
         # FP32) but the gradient bias against tiny lesions disappears.
         with torch.autocast(device_type=logits.device.type, enabled=False):
@@ -6576,7 +6732,7 @@ class PartialSupervisionDiceCELoss(nn.Module):
     """Dice+Focal with per-sample partial-label awareness for mixed-dataset training.
 
     ERASMUS provides only binary whole-tumour labels (class 1).
-    Classes 2 (oedema) and 3 (enhancing) are absent — not mislabelled
+    Classes 2 (oedema) and 3 (enhancing) are absent - not mislabelled
     as background.
 
     FIX: Previous version had two critical issues:
@@ -6933,18 +7089,48 @@ def holder_divergence(
     temperature: float, alpha: float = 1.5,
     reduction: str = "mean",
 ) -> torch.Tensor:
-    """Hölder divergence for knowledge distillation (~6% gain over KL).
+    """Hölder *pseudo*-divergence (HPD) for knowledge distillation.
+
+        L = T^2 * (-log  <t,s> / (||t||_alpha ||s||_beta)),   1/alpha + 1/beta = 1,
+
+    with t = softmax(teacher/T), s = softmax(student/T). This is the projective
+    Hölder divergence of Nielsen, Sun & Marchand-Maillet (Entropy 2017, Def. 1);
+    Hölder's inequality gives ratio <= 1, so L >= 0. alpha=2 (=> beta=2) is the
+    Cauchy-Schwarz divergence - the single *proper* member, with L(p:p)=0.
+
+    SEMANTICS OF alpha != 2 (deliberate design, not a bug - state this in the paper).
+    HPD is *improper* for alpha != 2: minimising L over the student does NOT drive
+    s -> teacher. The Hölder equality condition t^alpha ∝ s^beta gives the student
+    optimum
+
+        s* ∝ teacher^(alpha - 1)   (renormalised).
+
+    So the default alpha=1.5 distils toward the renormalised teacher^0.5 - a
+    FLATTER, higher-entropy target than the teacher. We adopt this as deliberate
+    *uncertainty transfer*: it preserves more of the teacher's secondary-class mass
+    (a learned, data-dependent label smoothing), which suits the low-field / LMIC
+    regime where calibrated boundary uncertainty matters more than sharp argmax
+    matching (cf. the Hölder-uncertainty framing of Zhang et al., arXiv:2411.00826).
+    The control alpha=2.0 recovers exact teacher-matching (proper Cauchy-Schwarz);
+    the {1.5, 2.0} contrast is the pre-registered ablation (see cmd_kd_compare's
+    'holder_default'/'holder_proper' arms and cmd_holder_sweep). Numerically
+    verified: argmin_s L is at s ∝ teacher^(alpha-1), and L(student=teacher) > 0
+    for alpha != 2 (== 0 at alpha=2).
 
     Returns per-voxel loss when reduction="none" (for confidence gating),
     or scalar loss when reduction="mean".
 
-    FIX v2: alpha ≤ 1.0 falls back to standard KL divergence.
-    FIX v3: Supports reduction="none" for voxelwise gating.
-            Added 1e-8 inside log for numerical safety (Issue #4).
-            Alpha clamped to ≤ 3.0 to prevent gradient explosion.
+    Implementation notes:
+        alpha <= 1+1e-6 falls back to standard KL - the alpha->1 HPD limit is NOT
+            KL and degenerates toward a uniform target, so KL is the correct floor.
+        alpha clamped to <= 3.0 (gradient stability); 1e-8 epsilons guard the logs.
+        reduction="none" returns the (B, D, H, W) map for voxelwise gating.
 
-    Ref: arXiv:2507.01254 — Hölder + MI for BraTS incomplete modalities
-         arXiv:2406.08634 — Masked Predicted Auto-Encoder + Hölder KD
+    Ref: Nielsen, Sun & Marchand-Maillet, "On Hölder projective divergences",
+         Entropy 2017 (HPD definition, improperness Fact 2, projective Fact 4).
+         Zhang et al., arXiv:2411.00826 - Hölder divergence for uncertainty QA.
+         arXiv:2507.01254 - Hölder + MI for BraTS incomplete modalities.
+         arXiv:2406.08634 - Masked Predicted Auto-Encoder + Hölder KD.
     """
     T2 = temperature ** 2
     alpha = min(alpha, 3.0)  # Issue #4: prevent gradient explosion
@@ -6970,7 +7156,10 @@ def holder_divergence(
     term_beta = (s_prob ** beta).sum(dim=1).pow(1.0 / beta)
     ratio = (numerator / (term_alpha * term_beta + 1e-10)).clamp(min=1e-10, max=1.0)
 
-    loss_map = -torch.log(ratio + 1e-8)  # Issue #4: epsilon inside log
+    # No extra epsilon inside the log: ratio is already clamped to [1e-10, 1.0], so
+    # -log(ratio) ∈ [0, ~23] is non-negative EXACTLY. The previous `+1e-8` made
+    # -log(1+1e-8) ≈ -1e-8 < 0 at perfect agreement - a divergence must be ≥ 0.
+    loss_map = -torch.log(ratio)
 
     if reduction == "none":
         return loss_map * T2  # (B, D, H, W)
@@ -7165,7 +7354,7 @@ def connected_component_postprocessing(
     Keeps only the largest connected component for each foreground
     class if the smaller components are below min_component_size voxels.
 
-    ET (class 3) gate — REVIEWER-FACING SEMANTICS
+    ET (class 3) gate - REVIEWER-FACING SEMANTICS
     ─────────────────────────────────────────────
     Enhancing tumour can be legitimately small (e.g., nascent enhancement
     in lower-grade glioma, micro-enhancement in post-treatment cases).
@@ -7219,7 +7408,11 @@ def connected_component_postprocessing(
     for comp_id in range(1, et_components + 1):
         comp_mask = et_labelled == comp_id
         comp_size = float(et_sizes[comp_id - 1])
-        comp_conf = float(np.mean(et_prob_map[comp_mask])) if et_prob_map is not None and np.any(comp_mask) else 1.0
+        # When no probability map is supplied, fall back to SIZE-ONLY gating
+        # (comp_conf=0.0), NOT comp_conf=1.0 - the latter made the OR always true,
+        # silently keeping EVERY small ET component (inflates ET Dice by retaining
+        # false-positive islands the gate exists to remove).
+        comp_conf = float(np.mean(et_prob_map[comp_mask])) if et_prob_map is not None and np.any(comp_mask) else 0.0
         if comp_size >= et_min_component_size or comp_conf >= et_confidence_threshold:
             et_keep.add(comp_id)
     for comp_id in range(1, et_components + 1):
@@ -7432,11 +7625,11 @@ def evaluate_teacher(
                 _, x, y, spacing_t, tags = batch
             elif len(batch) == 4:  # backward compat
                 _, x, y, tags = batch
-                spacing_t = None  # unknown spacing — brats_metrics will fall back to voxel units
+                spacing_t = None  # unknown spacing - brats_metrics will fall back to voxel units
             else:  # very old layout
                 _, x, y = batch[:3]
                 tags = ["unknown"] * x.shape[0]
-                spacing_t = None  # unknown spacing — brats_metrics will fall back to voxel units
+                spacing_t = None  # unknown spacing - brats_metrics will fall back to voxel units
 
             if y.numel() == 0:
                 raise ValueError("Evaluation requires ground-truth labels, but y is empty.")
@@ -7912,7 +8105,7 @@ class TeacherConfig:
     use_brats_metrics: bool = True
     hd95_freq: int = 50   # v9: raised from 10. HD95 is a publication metric, not
                           # a training signal. scipy EDT on 3D volumes stalls the GPU
-                          # for seconds per patient — too expensive every 10 epochs.
+                          # for seconds per patient - too expensive every 10 epochs.
                           # Always computed in the standalone 'evaluate' subcommand.
     val_fast_n: int = 1   # v9: configs evaluated every epoch. 1 = only "all" modalities.
                           # Prevents 5x validation overhead on every single epoch.
@@ -7943,6 +8136,17 @@ class TeacherConfig:
     legacy_protocol_year_threshold: int = 2013
     auto_resources: bool = False
     auto_resources_safety: float = 0.85
+    # FIX (2026 throughput/accuracy pass): the bare legacy teacher CLI never loads
+    # a v9.1 --config, so torch.compile() and weight-EMA were silently OFF for the
+    # teacher (both are otherwise gated on the v9.1 config: _v91_compile_cfg /
+    # build_model_ema). These knobs let the teacher CLI enable them directly; an
+    # explicit v9.1 config still wins when it turns them on. Defaults stay OFF so
+    # the historical path is byte-identical.
+    compile: bool = False
+    compile_mode: str = "max-autotune"
+    compile_dynamic: bool = False
+    ema: bool = False
+    ema_decay: float = 0.999
     # evaluation rigor extensions (added in the 2026 architecture pass)
     p_field_contrast_warp: float = 0.0
     field_contrast_source_b0: float = 3.0
@@ -7957,7 +8161,7 @@ class TeacherConfig:
     # block_style controls teacher capacity (only).  "mednext" (default)
     # preserves the historical depthwise-separable design (~1M @ base=32).
     # "dense" switches to full 3x3x3 conv blocks (~6M @ base=32, ~15M @
-    # base=48, ~26M @ base=64) for heavy KD teachers — student is unaffected
+    # base=48, ~26M @ base=64) for heavy KD teachers - student is unaffected
     # since only the student is exported to INT8 for CPU deployment.
     teacher_block_style: str = "mednext"
     # FIX (Gap A, 2026 audit): teacher-side feature-DR.  Mirrors the student
@@ -8037,7 +8241,7 @@ def _v91_bloch_sim(v91):
     except AttributeError:
         return None
     from ogap.augmentations.bloch_lowfield import BlochLowFieldSimulator
-    # MRI modality count (NOT the tissue-inflated in_channels) — see ogap.config.loader.
+    # MRI modality count (NOT the tissue-inflated in_channels) - see ogap.config.loader.
     _data = getattr(v91, "data", None)
     n_mri = int(getattr(_data, "n_mri_channels", 0) or getattr(_data, "in_channels", 4) or 4)
     target_b0 = float(getattr(phys, "bloch_lowfield_target_b0", 0.064) or 0.064)
@@ -8350,6 +8554,8 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
                 p_partial_contrast=cfg.p_partial_contrast,
                 lmic_field_strength_prior=cfg.lmic_field_strength_prior,
                 contrast_mod_indices=cfg.contrast_mod_indices,
+                p_field_contrast_warp=getattr(cfg, "p_field_contrast_warp", 0.0),
+                field_contrast_source_b0=getattr(cfg, "field_contrast_source_b0", 3.0),
             )
             if use_gpu_augment else _v91_gpu_phys
         )
@@ -8402,7 +8608,7 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
             ulf_gan_prob=getattr(cfg, "p_ulf_gan_synthesis", 0.0),
             ulf_gan_weights=getattr(cfg, "ulf_gan_weights", None),
             ulf_gan_target_b0=getattr(cfg, "ulf_gan_target_b0", 0.064),
-            # FIX (Gap B, 2026 audit): teacher-side modality dropout — student
+            # FIX (Gap B, 2026 audit): teacher-side modality dropout - student
             # has its own scheme so this only flows through the teacher path.
             modality_dropout_p=getattr(cfg, "teacher_modality_dropout_p", 0.0),
             modality_dropout_max_drop=getattr(cfg, "teacher_modality_dropout_max_drop", 2),
@@ -8542,7 +8748,7 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
                 )
                 if not getattr(cfg, "force_resume_partial", False):
                     raise RuntimeError(
-                        "resume_teacher.pth shape mismatch — aborting before silent retraining."
+                        "resume_teacher.pth shape mismatch - aborting before silent retraining."
                     )
                 LOG.warning("[Teacher] --force_resume_partial set; proceeding with partial state.")
             opt.load_state_dict(ckpt["optimizer"])
@@ -8562,8 +8768,14 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
 
         # Weight EMA built AFTER resume (so it tracks the resumed weights, not the
         # initial ones) and BEFORE compile (deepcopy the plain module). Default OFF.
-        from ogap.utils.ema import build_model_ema
+        from ogap.utils.ema import build_model_ema, ModelEMA
         ema = build_model_ema(model, _v91_cfg)
+        if ema is None and getattr(cfg, "ema", False):
+            # Bare legacy-CLI teacher (no v9.1 --config): honour the TeacherConfig
+            # EMA knob directly. build_model_ema only fires from the v9.1 config,
+            # so without this the --ema flag would be silently ignored. Built here
+            # (post-DDP, pre-compile) so it tracks resumed weights on the plain module.
+            ema = ModelEMA(model, decay=float(getattr(cfg, "ema_decay", 0.999)))
         if ema is not None:
             LOG.info("[Teacher] weight EMA enabled (decay=%.4f); best/last save EMA weights", ema.decay)
 
@@ -8571,6 +8783,13 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
         # plain module. OptimizedModule wrappers are fine for training, but they
         # are a brittle target for stripped _orig_mod resume keys.
         compile_enabled, compile_mode, compile_dynamic = _v91_compile_cfg(_v91_cfg)
+        if getattr(cfg, "compile", False) and not compile_enabled:
+            # Bare legacy-CLI teacher: honour the TeacherConfig compile knob
+            # directly (the v9.1 config still wins when it enables compile).
+            # maybe_compile_model() degrades to eager if Inductor/Triton is absent.
+            compile_enabled = True
+            compile_mode = str(getattr(cfg, "compile_mode", "max-autotune"))
+            compile_dynamic = bool(getattr(cfg, "compile_dynamic", False))
         if device.type == "cuda" and compile_enabled:
             model = maybe_compile_model(
                 model, "Teacher", mode=compile_mode, dynamic=compile_dynamic
@@ -8602,7 +8821,15 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
                 if fresh_sampler is not None:
                     if hasattr(fresh_sampler, "set_epoch"):
                         fresh_sampler.set_epoch(epoch)
-                    train_loader.sampler = fresh_sampler
+                    # torch>=2.6 forbids reassigning DataLoader.sampler after init
+                    # (ValueError). And because batch_size is set, the loader iterates
+                    # via batch_sampler.sampler, NOT loader.sampler - so update BOTH in
+                    # place (bypassing the __setattr__ guard) to actually reseed the
+                    # per-epoch weighted draw under persistent_workers.
+                    object.__setattr__(train_loader, "sampler", fresh_sampler)
+                    _bs = getattr(train_loader, "batch_sampler", None)
+                    if _bs is not None and getattr(_bs, "sampler", None) is not None:
+                        _bs.sampler = fresh_sampler
                     train_sampler = fresh_sampler
             epoch_t0 = time.time()
             LOG.info(f"[Teacher] Epoch {epoch}/{cfg.epochs} start")
@@ -8704,6 +8931,14 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
             run_validation = (epoch >= cfg.val_start_epoch or epoch == cfg.epochs)
             if run_validation:
                 LOG.info(f"[Teacher] Epoch {epoch}: validation start")
+                # FIX (2026-06-16, OOM teacher job 597737): release the training
+                # step's freed-but-cached allocator blocks before the whole-volume
+                # validation forward. With cudagraphs disabled (teacher compile_mode
+                # 'max-autotune-no-cudagraphs') there is no pinned graph pool to
+                # fight, so this hands the full card to evaluate_teacher and avoids
+                # fragmentation OOMs on large, variable-size validation volumes.
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
                 val_t0 = time.time()
                 # FIX issue #5: fix seed for deterministic validation so epoch-to-epoch
                 # comparisons and ablation comparisons are reproducible.
@@ -8764,7 +8999,8 @@ def pretrain_teacher(cfg: TeacherConfig) -> None:
                     LOG.info(f"  ✓ New best teacher: {best:.4f}")
 
         if is_main_process():
-            save_json(asdict(cfg), out / "teacher_config.json")
+            save_json({**asdict(cfg), "_code_provenance": _code_provenance()},
+                      out / "teacher_config.json")
             save_json({"history": history}, out / "teacher_history.json")
         LOG.info(f"[Teacher] Done. Best score: {best:.4f}")
     finally:
@@ -8815,7 +9051,7 @@ class TrainConfig:
     use_brats_metrics: bool = True
     hd95_freq: int = 50   # v9: raised from 10. See TeacherConfig note above.
     curriculum_ramp: float = 0.2
-    holder_alpha: float = 1.0
+    holder_alpha: float = 1.5  # the documented HPD method (1.0 = KL fallback is an ablation, not the default)
     # NEW: architecture config for ablations
     attention: str = "none"                   # "eca", "se", "none"
     enable_deep_supervision: bool = True
@@ -8862,7 +9098,7 @@ class TrainConfig:
     carvemix_prob: float = 0.0
     carvemix_dilation: int = 5
     teacher_arch: str = "unet3d"       # "unet3d" | "segmamba" | "swin_unetr" | "ode"
-    # MUST match the block_style the teacher checkpoint was trained with —
+    # MUST match the block_style the teacher checkpoint was trained with -
     # state_dict shapes change between mednext (depthwise+pointwise) and
     # dense (full 3x3x3) blocks, so loading a dense teacher with mednext
     # would crash in load_state_dict.  Default mednext for backward compat.
@@ -8978,6 +9214,8 @@ def train(cfg: TrainConfig) -> None:
                 p_partial_contrast=cfg.p_partial_contrast,
                 lmic_field_strength_prior=cfg.lmic_field_strength_prior,
                 contrast_mod_indices=cfg.contrast_mod_indices,
+                p_field_contrast_warp=getattr(cfg, "p_field_contrast_warp", 0.0),
+                field_contrast_source_b0=getattr(cfg, "field_contrast_source_b0", 3.0),
             )
             if use_gpu_augment else _v91_gpu_phys
         )
@@ -9096,7 +9334,7 @@ def train(cfg: TrainConfig) -> None:
             raise FileNotFoundError(f"Teacher checkpoint not found: {cfg.teacher_ckpt}")
         _raw_sd = torch.load(cfg.teacher_ckpt, map_location=device, weights_only=True)
         # Checkpoints saved from torch.compile()'d models have keys prefixed with
-        # "_orig_mod." — strip that prefix so the state_dict loads into a plain model.
+        # "_orig_mod." - strip that prefix so the state_dict loads into a plain model.
         _teacher_sd = {
             (k[len("_orig_mod."):] if k.startswith("_orig_mod.") else k): v
             for k, v in _raw_sd.items()
@@ -9117,7 +9355,7 @@ def train(cfg: TrainConfig) -> None:
         LOG.info(f"[Student] Loaded teacher from {cfg.teacher_ckpt}")
         # H100: compile the frozen teacher so its per-batch forward pass also benefits
         # from kernel fusion and max-autotuned kernels. The teacher runs once per
-        # training step — without compile this is the single largest unoptimised
+        # training step - without compile this is the single largest unoptimised
         # compute block in the training loop, and its input shape is fixed.
         compile_enabled, compile_mode, compile_dynamic = _v91_compile_cfg(_v91_cfg)
         if device.type == "cuda" and compile_enabled:
@@ -9260,12 +9498,12 @@ def train(cfg: TrainConfig) -> None:
             if aux_tissue_head is not None and ckpt.get("aux_tissue_head") is not None:
                 aux_tissue_head.load_state_dict(ckpt["aux_tissue_head"])
             elif aux_tissue_head is not None:
-                LOG.warning("[resume] aux_tissue_head absent from checkpoint — it will "
+                LOG.warning("[resume] aux_tissue_head absent from checkpoint - it will "
                             "train from a RANDOM init for the rest of the run.")
             if domain_classifier is not None and ckpt.get("domain_classifier") is not None:
                 domain_classifier.load_state_dict(ckpt["domain_classifier"])
             elif domain_classifier is not None:
-                LOG.warning("[resume] domain_classifier absent from checkpoint — it will "
+                LOG.warning("[resume] domain_classifier absent from checkpoint - it will "
                             "train from a RANDOM init for the rest of the run.")
             opt.load_state_dict(ckpt["optimizer"])
             sched.load_state_dict(ckpt["scheduler"])
@@ -9312,7 +9550,7 @@ def train(cfg: TrainConfig) -> None:
 
             # Modality curriculum
             # FIX: when use_curriculum=False, bypass the scheduler entirely
-            # and use cfg.keep_min_modalities directly — i.e. random masking
+            # and use cfg.keep_min_modalities directly - i.e. random masking
             # with a fixed lower bound from epoch 1 (no progressive ramp).
             if cfg.use_curriculum:
                 curr_keep_min = curriculum_keep_min(
@@ -9506,7 +9744,7 @@ def train(cfg: TrainConfig) -> None:
                             if cfg.confidence_gate_threshold > 0:
                                 gate = confidence_gated_kd_weight(
                                     t_logits.float(), cfg.confidence_gate_threshold
-                                )  # (B, D, H, W) — computed under no_grad()
+                                )  # (B, D, H, W) - computed under no_grad()
                                 loss_kd = (kd_map * gate).mean()
                             else:
                                 loss_kd = kd_map.mean()
@@ -9637,7 +9875,7 @@ def train(cfg: TrainConfig) -> None:
                     epoch % cfg.hd95_freq == 0 or epoch == cfg.epochs
                 )
 
-                # FIX issue #5: deterministic validation — isolated from training RNG state
+                # FIX issue #5: deterministic validation - isolated from training RNG state
                 with torch.random.fork_rng(enabled=True):
                     torch.manual_seed(cfg.seed)
                     np.random.seed(cfg.seed)
@@ -9721,7 +9959,8 @@ def train(cfg: TrainConfig) -> None:
                     LOG.info(f"  ✓ New best student: {best:.4f}")
 
         if is_main_process():
-            save_json(asdict(cfg), out / "train_config.json")
+            save_json({**asdict(cfg), "_code_provenance": _code_provenance()},
+                      out / "train_config.json")
             save_json({"history": history}, out / "history.json")
         LOG.info(f"[Student] Done. Best score: {best:.4f}")
     finally:
@@ -10005,7 +10244,7 @@ def _segmentation_entropy(logits: torch.Tensor) -> torch.Tensor:
 def _collect_norm_affine_params(model: nn.Module) -> List[nn.Parameter]:
     """Affine params of every BatchNorm / InstanceNorm / GroupNorm layer.
 
-    These are the only parameters Tent updates — leaving the conv weights
+    These are the only parameters Tent updates - leaving the conv weights
     frozen keeps the adaptation cheap and avoids catastrophic drift.
     """
     targets: List[nn.Parameter] = []
@@ -10227,7 +10466,7 @@ def _provider_name(provider: Any) -> str:
 def _enable_cpu_ep_graph_optim_if_needed(ort_module, opts: Any, providers: Sequence[Any], label: str) -> None:
     if providers and _provider_name(providers[0]) == "CPUExecutionProvider":
         opts.graph_optimization_level = ort_module.GraphOptimizationLevel.ORT_ENABLE_ALL
-        LOG.info("[%s] plain CPU EP — enabling ORT graph fusion (ORT_ENABLE_ALL)", label)
+        LOG.info("[%s] plain CPU EP - enabling ORT graph fusion (ORT_ENABLE_ALL)", label)
 
 
 def _load_saved_student_arch_config(
@@ -10328,7 +10567,7 @@ def export_to_onnx(
     )
 
     raw_sd = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    # torch.compile() wraps all parameter names with "_orig_mod." — strip it
+    # torch.compile() wraps all parameter names with "_orig_mod." - strip it
     # so the checkpoint can be loaded into a plain (non-compiled) model.
     sd = {k.replace("_orig_mod.", "", 1) if k.startswith("_orig_mod.") else k: v
           for k, v in raw_sd.items()}
@@ -10477,7 +10716,7 @@ def export_to_onnx(
                  f"{onnx_size / max(q_size, 0.1):.1f}x compression)")
         manifest["artifacts"]["int8_dynamic"] = _artifact_summary(q_path)
     except ImportError:
-        LOG.warning("[Export] onnxruntime not installed — skipping INT8")
+        LOG.warning("[Export] onnxruntime not installed - skipping INT8")
         manifest["int8_dynamic_error"] = "onnxruntime not installed"
     except Exception as e:
         # Record the failure in the manifest (mirroring static_quantization_error) so a
@@ -10773,8 +11012,8 @@ def _feret_bidimensional_mm(coords_rc: np.ndarray, sp_r: float, sp_c: float) -> 
     """RANO bidimensional measurement (mm) for one 2-D lesion slice.
 
     Returns ``(longest_diameter, longest_perpendicular_diameter)`` in mm. The longest
-    diameter is the **Feret** diameter — the maximum chord between any two lesion-boundary
-    points — NOT the axis-aligned bounding-box span, which overestimates the longest
+    diameter is the **Feret** diameter - the maximum chord between any two lesion-boundary
+    points - NOT the axis-aligned bounding-box span, which overestimates the longest
     diameter for non-convex / off-axis lesions. The perpendicular is the lesion's caliper
     width orthogonal to the long axis (for a convex shape, the longest perpendicular chord).
     """
@@ -11008,19 +11247,19 @@ def infer(
                         "CPUExecutionProvider",
                     ]
                     LOG.info("[Infer] ORT provider: DnnlExecutionProvider "
-                             "(Intel oneDNN — AMX/AVX-512/DL Boost active)")
+                             "(Intel oneDNN - AMX/AVX-512/DL Boost active)")
                 else:
-                    # oneDNN not compiled in this onnxruntime build — fall back
+                    # oneDNN not compiled in this onnxruntime build - fall back
                     provider_list = ["CPUExecutionProvider"]
                     LOG.info("[Infer] ORT provider: CPUExecutionProvider "
-                             "(OpenVINO/DnnlExecutionProvider unavailable — install "
+                             "(OpenVINO/DnnlExecutionProvider unavailable - install "
                              "onnxruntime-openvino for the deployment path)")
 
                 # PERF (Sapphire Rapids): ORT_DISABLE_ALL is only correct when an
                 # execution provider that owns graph optimisation (OpenVINO/oneDNN)
                 # is actually selected. On the plain CPUExecutionProvider fallback,
                 # disabling all optimisation strips operator fusion and constant
-                # folding — MLAS still uses AVX-512/VNNI/AMX kernels, but unfused,
+                # folding - MLAS still uses AVX-512/VNNI/AMX kernels, but unfused,
                 # which is markedly slower for INT8 conv inference. Re-enable full
                 # ORT graph optimisation in that case.
                 _enable_cpu_ep_graph_optim_if_needed(ort, opts, provider_list, "Infer")
@@ -11145,7 +11384,7 @@ def infer(
         timings.append(elapsed)
 
         # _collate_keep_single returns the raw dataset item, so values are plain
-        # strings — the isinstance(list) branch that existed here was dead code.
+        # strings - the isinstance(list) branch that existed here was dead code.
         # Prefer the dataset-supplied reference path so missing modality columns
         # don't trigger KeyError when modalities[0] was zero-filled.
         ref_path = row_dict.get("__ref_path__") or row_dict.get(modalities[0])
@@ -11218,7 +11457,7 @@ def infer(
 # §18a  HARDWARE BENCHMARK (LMIC Deployment Validation)
 # ══════════════════════════════════════════════════════════════════════════════
 #
-# LMIC hardware (e.g., Intel Core i5 laptop with 8–16 GB RAM) to validate the
+# LMIC hardware (e.g., Intel Core i5 laptop with 8-16 GB RAM) to validate the
 # "CPU-first" deployment claim.  Reports median inference time, peak RAM, and
 # estimated energy per case.
 # ══════════════════════════════════════════════════════════════════════════════
@@ -11236,12 +11475,12 @@ def benchmark_hardware(
     """Run inference benchmark with detailed hardware profiling.
 
     Designed for LMIC deployment validation: run this on a consumer-grade
-    laptop (Intel Core i5, 8–16 GB RAM) and report the results in the
+    laptop (Intel Core i5, 8-16 GB RAM) and report the results in the
     manuscript.
 
     Reports:
         - Per-case inference time (mean, median, std, p5, p95)
-        - Peak RSS memory (MB) — actual physical RAM consumed
+        - Peak RSS memory (MB) - actual physical RAM consumed
         - Peak ONNX allocator memory (if available)
         - CPU info, thread count, and platform details
         - Estimated energy per case (CPU TDP-based)
@@ -11565,7 +11804,7 @@ def full_evaluation(
                     }
                     LOG.info(
                         f"  [{tag}] {label}: {mean_v:.4f} "
-                        f"(95% CI {lo:.4f}–{hi:.4f}, n={len(per_case_vals)})"
+                        f"(95% CI {lo:.4f}-{hi:.4f}, n={len(per_case_vals)})"
                     )
     save_json(ci_results, out / "bootstrap_ci_results.json")
 
@@ -12092,7 +12331,7 @@ def statistical_comparison(
     result.update(_descriptives(b, "b"))
 
     if test == "wilcoxon":
-        # Remove zero differences (ties) — required by Wilcoxon signed-rank.
+        # Remove zero differences (ties) - required by Wilcoxon signed-rank.
         nonzero = diff != 0
         if nonzero.sum() < 10:
             result["p_value"] = 1.0
@@ -13359,7 +13598,7 @@ def _read_per_case_metrics(path) -> List[Dict[str, Any]]:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# A. Surface Dice (NSD) — Nikolov et al. 2018, Clin Cancer Res, also
+# A. Surface Dice (NSD) - Nikolov et al. 2018, Clin Cancer Res, also
 #     promoted by Isensee (nnU-Net revisited 2024).
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -13446,8 +13685,8 @@ def cmd_surface_dice(args: argparse.Namespace, core) -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# B. Calibration — ECE, Brier, reliability diagrams.
-#     Guo et al. 2017, ICML — On Calibration of Modern Neural Networks.
+# B. Calibration - ECE, Brier, reliability diagrams.
+#     Guo et al. 2017, ICML - On Calibration of Modern Neural Networks.
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _expected_calibration_error(probs: np.ndarray, labels: np.ndarray, n_bins: int = 15) -> Dict[str, Any]:
@@ -13497,7 +13736,7 @@ def _brier_score_multiclass(probs: np.ndarray, labels: np.ndarray, num_classes: 
 
 def _reliability_diagram(bins: List[Dict[str, Any]], path) -> None:
     if not _have_matplotlib():
-        ADDENDUM_LOG.warning("[calibration] matplotlib unavailable — skipping reliability diagram")
+        ADDENDUM_LOG.warning("[calibration] matplotlib unavailable - skipping reliability diagram")
         return
     import matplotlib
     matplotlib.use("Agg")
@@ -13522,7 +13761,7 @@ def _reliability_diagram(bins: List[Dict[str, Any]], path) -> None:
 
 
 def cmd_calibration(args: argparse.Namespace, core) -> None:
-    """Compute per-region Dice-Sorensen is NOT calibration — here we evaluate
+    """Compute per-region Dice-Sorensen is NOT calibration - here we evaluate
     voxelwise pixel calibration (ECE, Brier, reliability) on validation set.
 
     Loads the student checkpoint, runs sliding-window inference with softmax
@@ -13612,7 +13851,7 @@ def cmd_calibration(args: argparse.Namespace, core) -> None:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# C. Uncertainty — MC Dropout (Gal & Ghahramani 2016) + lightweight deep ensemble.
+# C. Uncertainty - MC Dropout (Gal & Ghahramani 2016) + lightweight deep ensemble.
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _enable_dropout(model) -> None:
@@ -14246,6 +14485,10 @@ def cmd_holder_sweep(args: argparse.Namespace, core) -> None:
 
 def cmd_kd_compare(args: argparse.Namespace, core) -> None:
     """Emit a runbook for alternative KD objectives using only existing knobs.
+    'holder_default' = holder_alpha=1.5 (pseudo-divergence; student target is the
+    flatter renormalised teacher^0.5 - deliberate uncertainty transfer).
+    'holder_proper' = holder_alpha=2.0 (the PROPER Cauchy-Schwarz member; student
+    target IS the teacher) - the pre-registered {1.5, 2.0} ablation control.
     'kl' = holder_alpha=1.0 (KL fallback). 'mse' = lambda_kd=0, lambda_feat
     bumped to move distillation weight entirely onto feature MSE. 'feat_only'
     and 'ce_only' are additional reference settings.
@@ -14254,6 +14497,10 @@ def cmd_kd_compare(args: argparse.Namespace, core) -> None:
     seeds = [int(s) for s in args.seeds.split(",")]
     matrix = {
         "holder_default":  {"holder_alpha": 1.5, "lambda_kd": 0.35, "lambda_feat": 0.05},
+        # alpha=2.0 is the PROPER Hölder (Cauchy-Schwarz) member: its minimiser is
+        # the teacher itself, vs alpha=1.5 whose minimiser is the flatter
+        # teacher^0.5. This is the pre-registered uncertainty-transfer ablation.
+        "holder_proper":   {"holder_alpha": 2.0, "lambda_kd": 0.35, "lambda_feat": 0.05},
         "kl":              {"holder_alpha": 1.0, "lambda_kd": 0.35, "lambda_feat": 0.05},
         "mse_feat_only":   {"lambda_kd": 0.0,  "lambda_feat": 0.25, "holder_alpha": 1.5},
         "no_kd":           {"lambda_kd": 0.0,  "lambda_feat": 0.0,  "holder_alpha": 1.5},
@@ -14907,7 +15154,7 @@ def cmd_audit_voxel_spacing(args: argparse.Namespace, core) -> None:
         try:
             img = nib.load(path)
             sp = tuple(round(float(s), 2) for s in img.header.get_zooms()[:3])
-        except Exception as exc:  # noqa: BLE001 — robustness audit, surface anything
+        except Exception as exc:  # noqa: BLE001 - robustness audit, surface anything
             ADDENDUM_LOG.warning("[audit_voxel_spacing] skipping %s: %s", path, exc)
             n_skipped += 1
             continue
@@ -15161,7 +15408,7 @@ def cmd_sampler_distribution(args: argparse.Namespace, core) -> None:
 # Y. Model card (Mitchell et al. 2019).
 # ══════════════════════════════════════════════════════════════════════════════
 
-MODEL_CARD_TEMPLATE = """# Model Card — OGAP Student (v9)
+MODEL_CARD_TEMPLATE = """# Model Card - OGAP Student (v9)
 
 ## Model details
 - Architecture: MedNeXt-S style student (base channels: {student_base}), soft-masked input, no-attention INT8 path by default.
@@ -15194,7 +15441,7 @@ MODEL_CARD_TEMPLATE = """# Model Card — OGAP Student (v9)
   scanner strength, make, sex, age).
 - Metrics: Dice, HD95 (physical spacing), Surface Dice at 1/2/3 mm; ECE, Brier,
   reliability diagrams.
-- Statistics: BCa 95% CIs (5000 resamples); Wilcoxon signed-rank with Holm–Bonferroni.
+- Statistics: BCa 95% CIs (5000 resamples); Wilcoxon signed-rank with Holm-Bonferroni.
 
 ## Quantitative analyses
 - See stratified_summary.json for subgroup performance.
@@ -15334,7 +15581,7 @@ def cmd_mahalanobis_ood(args: argparse.Namespace, core) -> None:
     a per-feature mean μ and shared covariance Σ (with diagonal regularizer
     1e-3 · I) across cases.
 
-    Phase B (score): computes ``M(x) = (f − μ)ᵀ Σ⁻¹ (f − μ)`` for every ID
+    Phase B (score): computes ``M(x) = (f - μ)ᵀ Σ⁻¹ (f - μ)`` for every ID
     and OOD case. Higher M ⇒ further from the in-distribution Gaussian.
 
     Outputs JSON with per-case scores, the (μ, Σ⁻¹) parameters, and (if an
@@ -15355,7 +15602,7 @@ def cmd_mahalanobis_ood(args: argparse.Namespace, core) -> None:
     student.eval()
 
     # Identify hook target. UNet3DStudent typically exposes encoder blocks
-    # named enc1..enc4 / bottleneck — pick whichever the user names, falling
+    # named enc1..enc4 / bottleneck - pick whichever the user names, falling
     # back to the deepest encoder we can find.
     target = None
     if args.hook_attr:
@@ -15562,10 +15809,10 @@ def cmd_delong(args: argparse.Namespace, core) -> None:
     Reads a CSV with columns ``case_id,label,score_a,score_b`` where
     ``label ∈ {0, 1}`` (also accepts ``pos``/``neg``). Computes the
     Mann-Whitney AUC for both score columns, the DeLong covariance via
-    structural components, and a two-sided z-test on (AUC_a − AUC_b).
+    structural components, and a two-sided z-test on (AUC_a - AUC_b).
 
     Implementation follows Sun & Xu (2014) "Fast Implementation of DeLong's
-    Algorithm" — O((m+n) log(m+n)) per AUC instead of the original O(mn).
+    Algorithm" - O((m+n) log(m+n)) per AUC instead of the original O(mn).
     """
     import csv as _csv
     from scipy.stats import norm
@@ -15988,7 +16235,7 @@ DATASHEET_TEMPLATE = """# Datasheet for the OGAP training pool
 - Missing values: handled via per-sample marginal CE and modality curriculum.
 - Demographic coverage: see stratified_summary.json. Sex/gender and race/ethnicity
   are included; note that the UTSW cohort is predominantly White and Non-Hispanic/
-  Latino — generalisability to under-represented groups should be validated.
+  Latino - generalisability to under-represented groups should be validated.
 - Field-strength coverage: 0.3T to 3T, enriched via physics-informed augmentation.
 
 ## Collection process
@@ -16666,7 +16913,7 @@ def main() -> None:
                          "'mednext' = depthwise-separable MedNeXt-S blocks (~1M @ base=32, "
                          "default for backward compat). "
                          "'dense' = full 3x3x3 conv blocks (~6M @ base=32, ~15M @ base=48, "
-                         "~26M @ base=64); use this for heavy KD teachers — only the student "
+                         "~26M @ base=64); use this for heavy KD teachers - only the student "
                          "is exported to INT8 so the teacher does not need to be "
                          "quantization-friendly.")
     # FIX (Gap A, 2026 audit): teacher-side feature-DR.
@@ -16698,6 +16945,24 @@ def main() -> None:
                          "/ --teacher_feature_dr), tolerate missing/extra keys and continue "
                          "with whatever loads. Default is to abort loudly so silent retraining "
                          "into the wrong architecture is impossible.")
+    # FIX (2026 throughput/accuracy pass): expose torch.compile + weight-EMA on the
+    # bare teacher CLI. Without a v9.1 --config both were silently OFF for the teacher,
+    # so a heavy dense base=64 teacher trained eager and deployed its last-iterate weights.
+    pt.add_argument("--compile", action="store_true",
+                    help="Enable torch.compile(Inductor) for the teacher. Without a v9.1 "
+                         "--config the teacher otherwise trains eager. Safe: maybe_compile_model "
+                         "falls back to eager if Inductor/Triton is unavailable.")
+    pt.add_argument("--compile_mode", default="max-autotune",
+                    help="torch.compile mode when --compile is set (default max-autotune).")
+    pt.add_argument("--compile_dynamic", action="store_true",
+                    help="Use dynamic shapes for torch.compile (default static; fixed-size "
+                         "teacher patches compile best static).")
+    pt.add_argument("--ema", action="store_true",
+                    help="Maintain an exponential moving average of teacher weights and "
+                         "validate/save THAT copy (a near-free accuracy gain used by recent "
+                         "BraTS / nnU-Net winners). Without a v9.1 --config EMA is otherwise OFF.")
+    pt.add_argument("--ema_decay", type=float, default=0.999,
+                    help="EMA decay when --ema is set (default 0.999).")
 
     # ── train ─────────────────────────────────────────────────────────────
     tr = sub.add_parser("train", help="Train student with knowledge distillation")
@@ -16757,7 +17022,10 @@ def main() -> None:
     tr.add_argument("--curriculum_ramp",    type=float, default=0.2,
                     help="Fraction of epochs with full modalities before cosine dropout begins. "
                          "OGAP 2.0 keeps full modalities for the initial 20%% before ramping dropout.")
-    tr.add_argument("--holder_alpha",       type=float, default=1.0)
+    tr.add_argument("--holder_alpha",       type=float, default=1.5,
+                    help="Hölder exponent for the HPD KD loss (the documented method). "
+                         "1.0 falls back to KL (an ablation arm), 2.0 is the proper "
+                         "Cauchy-Schwarz control. Default 1.5 matches the production sbatch.")
     tr.add_argument("--attention",          default="none", choices=["eca", "se", "none"])
     tr.add_argument("--no_deep_supervision",action="store_true")
     tr.add_argument("--curriculum_dropout_p",type=float, default=0.1)
@@ -16834,7 +17102,7 @@ def main() -> None:
     tr.add_argument("--lambda_vrex", type=float, default=0.0,
                     help="V-REx variance-of-risks penalty (Krueger+ ICML 2021). "
                          "Penalizes variance of per-site segmentation losses. "
-                         "0.05–0.5 typical; 0 disables.")
+                         "0.05-0.5 typical; 0 disables.")
     tr.add_argument("--feature_dr", choices=("none", "mixstyle", "dsu"), default="none",
                     help="Feature-statistics domain randomization at the first encoder block "
                          "(Zhou+ 2021 MixStyle / Li+ 2022 DSU). 'mixstyle' is the "
@@ -17209,6 +17477,13 @@ def main() -> None:
             teacher_modality_dropout_p=getattr(args, "teacher_modality_dropout_p", 0.0),
             teacher_modality_dropout_max_drop=getattr(args, "teacher_modality_dropout_max_drop", 2),
             force_resume_partial=bool(getattr(args, "force_resume_partial", False)),
+            # FIX (2026 throughput/accuracy pass): thread compile + EMA knobs so the
+            # bare teacher CLI can enable them (otherwise gated on a v9.1 --config).
+            compile=bool(getattr(args, "compile", False)),
+            compile_mode=str(getattr(args, "compile_mode", "max-autotune")),
+            compile_dynamic=bool(getattr(args, "compile_dynamic", False)),
+            ema=bool(getattr(args, "ema", False)),
+            ema_decay=float(getattr(args, "ema_decay", 0.999)),
         ))
 
     elif args.cmd == "train":

@@ -11,7 +11,7 @@ Per voxel the signal is the **partial-volume sum of per-tissue Bloch signals**
 
     S(v) = sum_t  f_t(v) * S_Bloch(T1_t(B0), T2_t(B0), PD_t ; TR, TE, TI)
 
-(NOT a parameter average — averaging T1/T2 is unphysical). FSL FAST is reliable
+(NOT a parameter average - averaging T1/T2 is unphysical). FSL FAST is reliable
 only in healthy brain, so voxels inside the BraTS label are **overridden** with the
 tumour-sub-region relaxation values (TC/ED/ET), and Gd enhancement shortens T1 of the
 enhancing tumour on the post-contrast channel only.
@@ -19,30 +19,30 @@ enhancing tumour on the post-contrast channel only.
 Realism layer (training)
 ------------------------
 A naive partial-volume render is piecewise-constant and has razor-sharp label
-boundaries — *sharper* than a real low-field scan, which has more partial-volume
+boundaries - *sharper* than a real low-field scan, which has more partial-volume
 blur and within-tissue heterogeneity. :class:`BlochLowFieldSimulator` therefore adds,
 on top of the physics render:
 
-* **within-tissue heterogeneity** — a smooth, low-frequency multiplicative field so
+* **within-tissue heterogeneity** - a smooth, low-frequency multiplicative field so
   tissue/tumour regions are not perfectly flat;
-* **low-field PSF blur** — a small Gaussian blur so lesion boundaries match the
+* **low-field PSF blur** - a small Gaussian blur so lesion boundaries match the
   partial-volume blur of a real low-resolution acquisition;
-* **real-texture blend** — adds back the high-frequency texture of the real scan so
+* **real-texture blend** - adds back the high-frequency texture of the real scan so
   fine anatomy (sulci/gyri/vessels) the PVE maps do not capture survives;
-* **acquisition randomisation** — optional per-sample jitter of TR/TE/TI and the
+* **acquisition randomisation** - optional per-sample jitter of TR/TE/TI and the
   target field, so the network sees a *distribution* of low-field appearances.
 
 Properties
 ----------
-* **Label-preserving** — the segmentation mask is never modified.
-* **Differentiable / device-native** — pure ``torch`` ops, so the render is autograd-
+* **Label-preserving** - the segmentation mask is never modified.
+* **Differentiable / device-native** - pure ``torch`` ops, so the render is autograd-
   friendly w.r.t. the input partial-volume fractions and composes with the H100 batch
   path. (The relaxation constants currently enter as Python scalars and are ``float()``-
   cast inside ``_bloch_signal_torch``, so gradients do NOT flow to T1/T2/PD/TR/TE. To
   enable gradient-based matching of sim params, change that signature to accept tensors
-  and drop the ``float(...)`` casts — passing tensors alone is not enough.)
-* **Training-time only** — deployment/inference needs no FSL and no simulator.
-* **Background-preserving** — skull-stripped zero background stays zero (no train/test
+  and drop the ``float(...)`` casts - passing tensors alone is not enough.)
+* **Training-time only** - deployment/inference needs no FSL and no simulator.
+* **Background-preserving** - skull-stripped zero background stays zero (no train/test
   shift, and the downstream ``v != 0`` masks stay valid).
 
 This is the principled, physics-exact replacement for the heuristic legacy

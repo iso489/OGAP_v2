@@ -94,7 +94,7 @@ augmentation:
     afa_mean_strength: 0.06
     stacked_n: 0
   # Channel-aware geometric augmentation (flip / affine / elastic). Applied to ALL
-  # channels (MRI + tissue priors) + the label so they stay co-registered — the
+  # channels (MRI + tissue priors) + the label so they stay co-registered - the
   # complement of the intensity shield. Default OFF (byte-identical legacy path);
   # the v9.1 profiles enable it because enabling augmentation.physics otherwise
   # replaces the legacy augmentor (which had flip+elastic) with an intensity-only

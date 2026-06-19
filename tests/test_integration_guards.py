@@ -1,4 +1,4 @@
-"""Phase 4 — verify new modules compose with existing OGAP components."""
+"""Phase 4 - verify new modules compose with existing OGAP components."""
 import torch
 import subprocess
 import sys

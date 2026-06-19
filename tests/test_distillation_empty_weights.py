@@ -4,7 +4,7 @@ Fresh-eyes audit finding. The config loader yields an *empty* namespace/dict for
 a YAML key written with nothing under it (`region_weights:`). Previously
 ``_as_weight_dict`` only substituted the default for ``None``, so an empty spec
 produced an empty weight map and ``RegionKDLoss.forward`` returned 0 KD with no
-error — a silent failure. The fix mirrors region_aware's ``x or default``: an
+error - a silent failure. The fix mirrors region_aware's ``x or default``: an
 empty spec falls back to a non-empty default, while an empty default (which is
 legitimate for ``per_region_temperature``) stays empty.
 """
