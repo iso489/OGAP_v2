@@ -125,11 +125,13 @@ sbatch slurm/submit_ogap_teacher_trillium_ddp.sbatch             # 4xH100 full n
 | Continuous-depth ODE teacher (Chen 2018, adjoint) | `ogap/models/ode.py` | `--teacher_arch ode` |
 | Weight-tied ODE student (train continuous, deploy discrete, INT8-friendly) | `ogap/models/student_ode.py` | model variant |
 | Hardware-aware NAS / Once-for-All supernet (White 2023) | `ogap/nas/` | `python -m ogap nas-search ...` |
-| Latent-ODE longitudinal RANO tracker (Chen 2018) | `ogap/longitudinal/latent_ode.py` | `inference.longitudinal` |
-| Continuous-normalizing-flow OOD scorer (Chen 2018) | `ogap/ood/cnf.py` | `inference.ood` |
+| Latent-ODE longitudinal RANO tracker (Chen 2018) | `ogap/longitudinal/latent_ode.py` | offline analysis (see note) |
+| Continuous-normalizing-flow OOD scorer (Chen 2018) | `ogap/ood/cnf.py` | offline analysis (see note) |
 | Group-balanced conformal abstention | `ogap/ood/conformal.py` | eval-time |
 | Equity / fairness-without-harm reporting | `ogap/evaluation/equity.py` | eval-time |
 | Field-strength-aware physics augmentation | `ogap/augmentations/physics_augment.py` | `augmentation.physics.*` |
+
+Note: the OOD (CNF) scorer and the longitudinal tracker ship as tested modules and are run as offline post-hoc analyses; the runtime contract (`ogap/config/loader.py`) deliberately rejects enabling `inference.ood` / `inference.longitudinal` as production training or inference gates.
 
 ## Running the tests
 
