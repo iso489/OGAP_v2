@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ogap"
+version = "9.1.0"
+description = "Open Glioma Analysis Pipeline: deployable, physics-grounded, equitable brain-tumour segmentation for low-field / LMIC MRI"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Ilyas Oultache" }]
+keywords = [
+  "brain tumour segmentation",
+  "low-field MRI",
+  "knowledge distillation",
+  "conformal prediction",
+  "health equity",
+  "domain generalization",
+]
+classifiers = [
+  "Programming Language :: Python :: 3.11",
+  "License :: OSI Approved :: MIT License",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+  "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+  "numpy>=1.24,<2",
+  "scipy>=1.11,<2",
+  "torch>=2.5",
+  "nibabel>=5.0",
+  "SimpleITK",
+  "scikit-learn>=1.3,<2",
+  "pandas",
+  "matplotlib",
+  "einops",
+  "pyyaml",
+  "tqdm",
+  "psutil",
+  "nvidia-ml-py",
+  "pydicom",
+]
+
+# NOTE on PyTorch: requirements.txt pins torch==2.6.0+computecanada (the Alliance
+# Canada wheelhouse build, only resolvable on those clusters). Off-cluster, install
+# a standard PyTorch >= 2.5 from pytorch.org or PyPI first, then `pip install -e .`.
+
+[project.optional-dependencies]
+onnx = ["onnx", "onnxruntime", "onnxscript", "safetensors"]
+ode = ["torchdiffeq"]
+media = ["monai", "medpy", "highdicom"]
+dev = ["pytest"]
+# The SegMamba teacher needs a CUDA toolchain (nvcc + ninja) to build these from
+# source. Prefer the dedicated environment in setup/setup_ogap_env_mamba.sh.
+mamba = ["causal-conv1d", "mamba-ssm"]
+
+[project.urls]
+Repository = "https://github.com/iso489/OGAP_v2"
+
+[project.scripts]
+ogap = "ogap.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ogap*"]
+
+[tool.setuptools.package-data]
+ogap = ["config/*.yaml"]

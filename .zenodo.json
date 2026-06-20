@@ -1,0 +1,28 @@
+{
+  "title": "OGAP: Open Glioma Analysis Pipeline",
+  "description": "A deployable, physics-grounded, safe-by-abstention, equitable-by-design brain-tumour segmentation system for low-field / LMIC MRI (BraTS-Africa, 64 mT Hyperfine Swoop), with teacher-to-student knowledge distillation, a physics-based Bloch low-field simulator, group-balanced conformal abstention, fairness-without-harm reporting, and INT8 edge deployment.",
+  "upload_type": "software",
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "brain tumour segmentation",
+    "low-field MRI",
+    "knowledge distillation",
+    "conformal prediction",
+    "health equity",
+    "domain generalization"
+  ],
+  "creators": [
+    {
+      "name": "Oultache, Ilyas",
+      "affiliation": "Montreal Neurological Institute, McGill University"
+    }
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/iso489/OGAP_v2",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    }
+  ]
+}

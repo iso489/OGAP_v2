@@ -2,18 +2,20 @@ cff-version: 1.2.0
 title: "OGAP: Open Glioma Analysis Pipeline"
 message: "If you use this software, please cite it using these metadata."
 type: software
+version: "9.1.0"
+date-released: "2026-06-19"
+# doi: "10.5281/zenodo.XXXXXXX"   # TODO: add the Zenodo DOI after archiving this release
+repository-code: "https://github.com/iso489/OGAP_v2"
+license: MIT
 authors:
   - given-names: "Ilyas"
     family-names: "Oultache"
     affiliation: "Montreal Neurological Institute, McGill University"
-    # orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO: add ORCID and all the co-authors
-repository-code: "https://github.com/iso489/OGAP_v2"
-abstract: >-
-  A deployable, physics-grounded, safe-by-abstention, equitable-by-design brain-tumour
-  segmentation system for low-field / LMIC MRI (BraTS-Africa, 64 mT Hyperfine Swoop),
-  with teacher-to-student knowledge distillation, a physics-based Bloch low-field
-  simulator, group-balanced conformal abstention, fairness-without-harm reporting, and
-  INT8 edge deployment.
+    # orcid: "https://orcid.org/0000-0000-0000-0000"   # TODO: add the real ORCID
+  # TODO: add every co-author below, in author order, e.g.:
+  # - given-names: "..."
+  #   family-names: "..."
+  #   affiliation: "..."
 keywords:
   - brain tumour segmentation
   - low-field MRI
@@ -21,4 +23,9 @@ keywords:
   - conformal prediction
   - health equity
   - domain generalization
-license: MIT
+abstract: >-
+  A deployable, physics-grounded, safe-by-abstention, equitable-by-design brain-tumour
+  segmentation system for low-field / LMIC MRI (BraTS-Africa, 64 mT Hyperfine Swoop),
+  with teacher-to-student knowledge distillation, a physics-based Bloch low-field
+  simulator, group-balanced conformal abstention, fairness-without-harm reporting, and
+  INT8 edge deployment.
